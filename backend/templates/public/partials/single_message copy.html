@@ -1,0 +1,25 @@
+<div class="flex justify-start">
+    <div class="max-w-lg rounded-lg p-3 bg-gray-100">
+        <div class="flex items-center space-x-2 text-xs text-gray-600 mb-1">
+            <span class="font-semibold">{{ message.sender_name }}</span>
+            <span>{{ message.sent_at|date:"M j, Y, g:i a" }}</span>
+        </div>
+        <p class="text-gray-800 whitespace-pre-wrap">{{ message.content }}</p>
+
+        {% if message.attachments.exists %}
+            <div class="mt-2 border-t pt-2">
+                <p class="text-xs font-medium text-gray-500">Attachments:</p>
+                <ul class="list-disc list-inside">
+                    {% for attachment in message.attachments.all %}
+                        <li>
+                            <a href="{{ attachment.file.url }}" target="_blank" class="text-xs text-indigo-600 hover:text-indigo-800 hover:underline">
+                                {{ attachment.original_name }}
+                            </a>
+                            <span class="text-xs text-gray-400">({{ attachment.size|filesizeformat }})</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    </div>
+</div>

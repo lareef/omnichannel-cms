@@ -1,0 +1,14 @@
+        {
+  "name": "omnichannel-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  },
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/input.css -o ../backend/static/css/output.css --config ./tailwind.config.js",
+    "watch:css": "tailwindcss -i ./src/input.css -o ../backend/static/css/output.css --config ./tailwind.config.js --watch"
+  }
+}
+

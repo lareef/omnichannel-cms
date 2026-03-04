@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Track Your Complaint{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white shadow rounded-lg p-6">
+        <h1 class="text-2xl font-bold text-center text-gray-900 mb-6">Track Your Complaint</h1>
+        <p class="text-gray-600 text-center mb-8">
+            Enter the tracking token you received via email or SMS to view the status of your complaint and add replies.
+        </p>
+
+        {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                    <div class="p-3 rounded-md {% if message.tags == 'error' %}bg-red-50 text-red-800{% else %}bg-blue-50 text-blue-800{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            <div>
+                <label for="token" class="block text-sm font-medium text-gray-700">Tracking Token</label>
+                <input type="text" name="token" id="token" required
+                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                       placeholder="e.g., abc123-def456-...">
+            </div>
+            <div>
+                <button type="submit"
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Track Complaint
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-6 text-center text-sm text-gray-500">
+            <p>Didn't receive a token? <a href="{% url 'submit_complaint' %}" class="text-indigo-600 hover:text-indigo-500">Submit a new complaint</a>.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

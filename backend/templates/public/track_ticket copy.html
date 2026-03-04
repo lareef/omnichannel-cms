@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Track Ticket #{{ ticket.ticket_number }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <!-- Header with ticket number -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Ticket #{{ ticket.ticket_number }}</h1>
+        <p class="text-sm text-gray-500">Submitted on {{ ticket.created_at|date:"F j, Y, g:i a" }}</p>
+    </div>
+
+    <!-- Ticket summary card -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+        <div class="px-4 py-5 sm:px-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">{{ ticket.subject }}</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">{{ ticket.category.name }} · {{ ticket.status.name }}</p>
+        </div>
+        <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+            <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Customer</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ ticket.customer_name }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Contact</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ ticket.customer_contact }}</dd>
+                </div>
+                <div class="sm:col-span-2">
+                    <dt class="text-sm font-medium text-gray-500">Description</dt>
+                    <dd class="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{{ ticket.description }}</dd>
+                </div>
+                {% if ticket.extra_data %}
+                <div class="sm:col-span-2">
+                    <dt class="text-sm font-medium text-gray-500">Additional Information</dt>
+                    <dd class="mt-1 text-sm text-gray-900">
+                        <ul class="list-disc list-inside">
+                            {% for key, value in ticket.extra_data.items %}
+                                <li><span class="font-medium">{{ key }}:</span> {{ value }}</li>
+                            {% endfor %}
+                        </ul>
+                    </dd>
+                </div>
+                {% endif %}
+            </dl>
+        </div>
+    </div>
+
+    <!-- Conversation Thread -->
+    <div class="bg-white shadow sm:rounded-lg mb-8">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Conversation</h3>
+        </div>
+        <div class="px-4 py-5 sm:px-6 space-y-4">
+            {% for message in messages %}
+                <div class="flex {% if message.sender_type == 'customer' %}justify-start{% else %}justify-end{% endif %}">
+                    <div class="max-w-lg rounded-lg p-3 {% if message.is_internal_note %}bg-yellow-100 border border-yellow-300{% elif message.sender_type == 'customer' %}bg-gray-100{% else %}bg-indigo-100{% endif %}">
+                        <div class="flex items-center space-x-2 text-xs text-gray-600 mb-1">
+                            <span class="font-semibold">{{ message.sender_name }}</span>
+                            <span>{{ message.sent_at|date:"M j, Y, g:i a" }}</span>
+                            {% if message.is_internal_note %}
+                                <span class="bg-yellow-200 text-yellow-800 px-1 rounded">Internal Note</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-gray-800 whitespace-pre-wrap">{{ message.content }}</p>
+                        
+                        <!-- Display attachments for this message -->
+                        {% if message.attachments.exists %}
+                            <div class="mt-2 border-t pt-2">
+                                <p class="text-xs font-medium text-gray-500">Attachments:</p>
+                                <ul class="list-disc list-inside">
+                                    {% for attachment in message.attachments.all %}
+                                        <li>
+                                            <a href="{{ attachment.file.url }}" target="_blank" class="text-xs text-indigo-600 hover:text-indigo-800 hover:underline">
+                                                {{ attachment.original_name }}
+                                            </a>
+                                            <span class="text-xs text-gray-400">
+                                                ({{ attachment.size|filesizeformat }})
+                                            </span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-gray-500 text-center">No messages yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Reply Form (with file upload) -->
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Add a Reply</h3>
+        </div>
+        <div class="px-4 py-5 sm:px-6">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div>
+                    <label for="reply" class="sr-only">Your reply</label>
+                    <textarea id="reply" name="reply" rows="4" required
+                              class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Type your reply here..."></textarea>
+                </div>
+                
+                <!-- File attachment input -->
+                <div class="mt-4">
+                    <label for="attachments" class="block text-sm font-medium text-gray-700">
+                        Attachments (optional)
+                    </label>
+                    <input type="file" name="attachments" id="attachments" multiple
+                           class="mt-1 block w-full text-sm text-gray-500
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-md file:border-0
+                                  file:text-sm file:font-medium
+                                  file:bg-indigo-50 file:text-indigo-700
+                                  hover:file:bg-indigo-100">
+                    <p class="mt-1 text-xs text-gray-500">You can select multiple files (max 10MB each).</p>
+                </div>
+
+                <div class="mt-4 flex justify-end">
+                    <button type="submit"
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Send Reply
+                    </button>
+                </div>
+            </form>
+            <p class="mt-3 text-xs text-gray-500">
+                Your reply will be added to the conversation and visible to our support team.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

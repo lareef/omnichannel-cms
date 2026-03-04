@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Track Ticket #{{ ticket.ticket_number }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <!-- Header with ticket number -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Ticket #{{ ticket.ticket_number }}</h1>
+        <p class="text-sm text-gray-500">Submitted on {{ ticket.created_at|date:"F j, Y, g:i a" }}</p>
+    </div>
+
+    <!-- Ticket summary card (same as before) -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+        <!-- ... existing summary ... -->
+    </div>
+
+    <!-- Conversation Thread -->
+    <div class="bg-white shadow sm:rounded-lg mb-8">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Conversation</h3>
+        </div>
+        <div class="px-4 py-5 sm:px-6 space-y-4" id="message-list">
+            {% for message in messages %}
+                {% include 'public/partials/single_message.html' %}
+            {% empty %}
+                <p class="text-gray-500 text-center">No messages yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Reply Form with HTMX -->
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Add a Reply</h3>
+        </div>
+        <div class="px-4 py-5 sm:px-6">
+            <form id="reply-form"
+                  method="post"
+                  enctype="multipart/form-data"
+                  hx-post="{{ request.path }}"
+                  hx-target="#message-list"
+                  hx-swap="beforeend"
+                  hx-encoding="multipart/form-data"
+                  hx-on="htmx:afterRequest: this.reset()">
+                {% csrf_token %}
+                <div>
+                    <label for="reply" class="sr-only">Your reply</label>
+                    <textarea id="reply" name="reply" rows="4" required
+                              class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Type your reply here..."></textarea>
+                </div>
+
+                <!-- File attachment input -->
+                <div class="mt-4">
+                    <label for="attachments" class="block text-sm font-medium text-gray-700">
+                        Attachments (optional)
+                    </label>
+                    <input type="file" name="attachments" id="attachments" multiple
+                           class="mt-1 block w-full text-sm text-gray-500
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-md file:border-0
+                                  file:text-sm file:font-medium
+                                  file:bg-indigo-50 file:text-indigo-700
+                                  hover:file:bg-indigo-100">
+                    <p class="mt-1 text-xs text-gray-500">You can select multiple files (max 10MB each).</p>
+                </div>
+
+                <div class="mt-4 flex justify-end">
+                    <button type="submit"
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Send Reply
+                    </button>
+                </div>
+            </form>
+            <p class="mt-3 text-xs text-gray-500">
+                Your reply will be added to the conversation and visible to our support team.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+<form hx-post="{% url 'tickets:update_ticket' ticket.pk %}" hx-target="#modal-content" class="space-y-3">
+    {% csrf_token %}
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Status</label>
+            {{ form.status }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Priority</label>
+            {{ form.priority }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Assigned To</label>
+            {{ form.assigned_to }}
+        </div>
+        <div class="col-span-2">
+            <label class="block text-sm font-medium text-gray-700">Comment</label>
+            {{ form.comment }}
+        </div>
+    </div>
+    {% if form.errors %}
+        <div class="text-red-600 text-sm">{{ form.errors }}</div>
+    {% endif %}
+    <div class="flex justify-end">
+        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Save Changes</button>
+    </div>
+</form>

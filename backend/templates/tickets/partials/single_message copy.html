@@ -1,0 +1,14 @@
+<div class="flex {% if message.sender_type == 'customer' %}justify-start{% else %}justify-end{% endif %}">
+    <div class="max-w-lg rounded-lg p-3 {% if message.is_internal_note %}bg-yellow-100 border border-yellow-300{% elif message.sender_type == 'customer' %}bg-gray-100{% else %}bg-indigo-100{% endif %}">
+        <div class="flex items-center space-x-2 text-xs text-gray-600 mb-1">
+            <span class="font-semibold">{{ message.sender_name }}</span>
+            <span>{{ message.sent_at|date:"Y-m-d H:i" }}</span>
+            {% if message.is_internal_note %}
+                <span class="bg-yellow-200 text-yellow-800 px-1 rounded">Internal</span>
+            {% endif %}
+        </div>
+        <p class="text-gray-800 whitespace-pre-wrap">{{ message.content }}</p>
+    </div>
+
+    backend/templates/tickets/partials/single_message.html
+</div>

@@ -1,0 +1,94 @@
+<div class="flex justify-between items-start mb-4">
+    <h2 class="text-xl font-bold">Ticket #{{ ticket.ticket_number }}</h2>
+    <button class="text-gray-500 hover:text-gray-700" _="on click add .hidden to #modal">✕</button>
+</div>
+
+<!-- Ticket Info -->
+<div class="grid grid-cols-2 gap-4 mb-4">
+    <div>
+        <p class="text-sm text-gray-600">Customer: <span class="font-medium">{{ ticket.customer_name }}</span></p>
+        <p class="text-sm text-gray-600">Contact: {{ ticket.customer_contact }}</p>
+        <p class="text-sm text-gray-600">Channel: {{ ticket.channel.name }}</p>
+    </div>
+    <div>
+        <p class="text-sm text-gray-600">Status: <span class="font-medium">{{ ticket.status.name }}</span></p>
+        <p class="text-sm text-gray-600">Priority: <span class="font-medium">{{ ticket.priority.name }}</span></p>
+        <p class="text-sm text-gray-600">Assigned to: {{ ticket.assigned_to.get_full_name|default:"Unassigned" }}</p>
+    </div>
+</div>
+
+<!-- Subject & Description -->
+<div class="mb-4">
+    <h3 class="text-lg font-semibold">Subject</h3>
+    <p class="text-gray-800">{{ ticket.subject }}</p>
+    <h3 class="text-lg font-semibold mt-2">Description</h3>
+    <p class="text-gray-800 whitespace-pre-wrap">{{ ticket.description }}</p>
+</div>
+
+<!-- Update Form -->
+<div class="mb-4 border-t pt-4">
+    <h3 class="text-lg font-semibold mb-2">Update Ticket</h3>
+    <div id="update-form-container" hx-trigger="load" hx-get="{% url 'tickets:update_ticket' ticket.pk %}"></div>
+</div>
+
+<!-- Conversation Thread -->
+<div class="bg-white shadow sm:rounded-lg mb-8">
+    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Conversation</h3>
+    </div>
+    <div class="px-4 py-5 sm:px-6 space-y-4" id="message-list">
+        {% for message in messages %}
+            <div class="flex {% if message.sender_type == 'customer' %}justify-start{% else %}justify-end{% endif %}">
+                <div class="max-w-lg rounded-lg p-3 {% if message.is_internal_note %}bg-yellow-100 border border-yellow-300{% elif message.sender_type == 'customer' %}bg-gray-100{% else %}bg-indigo-100{% endif %}">
+                    <div class="flex items-center space-x-2 text-xs text-gray-600 mb-1">
+                        <span class="font-semibold">{{ message.sender_name }}</span>
+                        <span>{{ message.sent_at|date:"M j, Y, g:i a" }}</span>
+                        {% if message.is_internal_note %}
+                            <span class="bg-yellow-200 text-yellow-800 px-1 rounded">Internal Note</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-gray-800 whitespace-pre-wrap">{{ message.content }}</p>
+
+                    <!-- Display attachments for this message -->
+                {% if message.attachments.exists %}
+                    <div class="mt-2 border-t pt-2">
+                        <p class="text-xs font-medium text-gray-500">Attachment:</p>
+                        <ul class="list-disc list-inside">
+                            {% for attachment in message.attachments.all %}
+                                <li>
+                                    <a href="javascript:void(0)" 
+                                    onclick="previewAttachment('{{ attachment.file.url }}', '{{ attachment.original_name }}', '{{ attachment.content_type }}')"
+                                    class="text-xs text-indigo-600 hover:text-indigo-800 hover:underline">
+                                        {{ attachment.original_name }}
+                                    </a>
+                                    <span class="text-xs text-gray-400">({{ attachment.size|filesizeformat }})</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-gray-500 text-center">No messages yet.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<form id="message-form"
+      method="post"
+      enctype="multipart/form-data"
+      hx-post="{% url 'tickets:add_message_with_attachments' ticket.pk %}"
+      hx-target="#message-list"
+      hx-swap="beforeend"
+      hx-encoding="multipart/form-data"
+      hx-on="htmx:afterRequest: this.reset()">
+    {% csrf_token %}
+    <textarea name="content" rows="2" class="w-full border rounded p-2" placeholder="Type your reply..."></textarea>
+    <div class="flex items-center mt-2">
+        <input type="checkbox" name="is_internal_note" id="is_internal_note" class="mr-2">
+        <label for="is_internal_note">Internal note (not visible to customer)</label>
+        <input type="file" name="attachments" multiple class="ml-4 text-sm">
+        <button type="submit" class="ml-auto bg-indigo-600 text-white px-4 py-2 rounded">Send</button>
+    </div>
+</form>
