@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manage Business Calendars{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Business Calendars</h1>
+        <a href="{% url 'utilities:calendar_add' %}" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">+ Add Calendar</a>
+    </div>
+
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <ul class="divide-y divide-gray-200">
+            {% for calendar in calendars %}
+                <li class="px-6 py-4 hover:bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <a href="{% url 'utilities:calendar_detail' calendar.pk %}" class="text-lg font-medium text-indigo-600 hover:text-indigo-900">
+                                {{ calendar.name }}
+                            </a>
+                            {% if calendar.is_default %}
+                                <span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Default</span>
+                            {% endif %}
+                            <p class="text-sm text-gray-500">{{ calendar.description|default:"No description" }}</p>
+                        </div>
+                        <div class="ml-4 flex space-x-2">
+                            <a href="{% url 'utilities:calendar_edit' calendar.pk %}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                            <a href="{% url 'utilities:calendar_delete' calendar.pk %}" class="text-red-600 hover:text-red-900">Delete</a>
+                        </div>
+                    </div>
+                </li>
+            {% empty %}
+                <li class="px-6 py-4 text-gray-500 text-center">No calendars yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    {% if is_paginated %}
+        <div class="mt-4 flex justify-center">
+            <!-- Pagination (same as dashboard) -->
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -29,7 +29,6 @@ class SupervisorRequiredMixin(UserPassesTestMixin):
         user = self.request.user
         return user.is_authenticated and user.role and user.role.code in ['supervisor', 'admin']
 
-
 # ----- Dashboard / Ticket List -----
 class DashboardView(LoginRequiredMixin, ListView):
     model = Ticket
@@ -46,7 +45,7 @@ class DashboardView(LoginRequiredMixin, ListView):
 
         # Filter by user role
         user = self.request.user
-        if user.role.code == 'agent':
+        if user.role and user.role.code == 'agent':
             # Agents see only tickets assigned to them or unassigned tickets in their department
             queryset = queryset.filter(
                 Q(assigned_to=user) |
@@ -85,7 +84,7 @@ class TicketDetailView(LoginRequiredMixin, AgentRequiredMixin, DetailView):
         # Ensure user has permission to view this ticket
         qs = super().get_queryset()
         user = self.request.user
-        if user.role.code == 'agent':
+        if user.role and user.role.code == 'agent':
             qs = qs.filter(
                 Q(assigned_to=user) |
                 Q(assigned_to__isnull=True, department=user.department)
@@ -111,7 +110,7 @@ class old_TicketDetailView(LoginRequiredMixin, AgentRequiredMixin, DetailView):
         # Ensure user has permission to view this ticket
         qs = super().get_queryset()
         user = self.request.user
-        if user.role.code == 'agent':
+        if user.role and user.role.code == 'agent':
             qs = qs.filter(
                 Q(assigned_to=user) |
                 Q(assigned_to__isnull=True, department=user.department)
@@ -135,16 +134,22 @@ def ticket_detail_partial(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
     # Permission check
     user = request.user
-    if user.role.code == 'agent' and not (ticket.assigned_to == user or (ticket.assigned_to is None and ticket.department == user.department)):
+    if user.role and user.role.code == 'agent' and not (ticket.assigned_to == user or (ticket.assigned_to is None and ticket.department == user.department)):
         return HttpResponseForbidden()
-    html = render_to_string('tickets/partials/ticket_detail.html', {'ticket': ticket}, request=request)
+
+    messages_qs = ticket.messages.select_related('sender_user').prefetch_related('attachments').order_by('sent_at')
+    context = {
+        'ticket': ticket,
+        'messages': messages_qs,
+    }
+    html = render_to_string('tickets/partials/ticket_detail.html', context, request=request)
     return HttpResponse(html)
 
 def update_ticket(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
     # Permission check (as before)
     user = request.user
-    if user.role.code == 'agent' and not (ticket.assigned_to == user or (ticket.assigned_to is None and ticket.department == user.department)):
+    if user.role and user.role.code == 'agent' and not (ticket.assigned_to == user or (ticket.assigned_to is None and ticket.department == user.department)):
         return HttpResponseForbidden()
 
     if request.method == 'POST':
@@ -153,7 +158,12 @@ def update_ticket(request, pk):
             form.save(updated_by=user)
             messages.success(request, "Ticket updated successfully.")
             # Return updated detail partial
-            html = render_to_string('tickets/partials/ticket_detail.html', {'ticket': ticket}, request=request)
+            messages_qs = ticket.messages.select_related('sender_user').prefetch_related('attachments').order_by('sent_at')
+            context = {
+                'ticket': ticket,
+                'messages': messages_qs,
+            }
+            html = render_to_string('tickets/partials/ticket_detail.html', context, request=request)
             return HttpResponse(html)
         else:
             html = render_to_string('tickets/partials/update_form.html', {'form': form, 'ticket': ticket}, request=request)
@@ -167,7 +177,7 @@ def old_update_ticket(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
     # Permission check
     user = request.user
-    if user.role.code == 'agent' and not (ticket.assigned_to == user or (ticket.assigned_to is None and ticket.department == user.department)):
+    if user.role and user.role.code == 'agent' and not (ticket.assigned_to == user or (ticket.assigned_to is None and ticket.department == user.department)):
         return HttpResponseForbidden()
 
     if request.method == 'POST':
@@ -193,7 +203,7 @@ def add_message(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
     # Permission check
     user = request.user
-    if user.role.code == 'agent' and not (ticket.assigned_to == user or (ticket.assigned_to is None and ticket.department == user.department)):
+    if user.role and user.role.code == 'agent' and not (ticket.assigned_to == user or (ticket.assigned_to is None and ticket.department == user.department)):
         return HttpResponseForbidden()
 
     if request.method == 'POST':
@@ -262,55 +272,55 @@ def update_list_partial(request, pk):
     html = render_to_string('tickets/partials/update_list.html', {'updates': updates}, request=request)
     return HttpResponse(html)
 
-@login_required
-@role_required(['agent', 'supervisor', 'admin'])
+# @login_required
+# @role_required(['agent', 'supervisor', 'admin'])
 
-def update_ticket(request, pk):
-    ticket = get_object_or_404(Ticket, pk=pk)
-    if request.method == 'POST':
-        form = TicketUpdateForm(request.POST, instance=ticket)
-        if form.is_valid():
-            # Save changes, create TicketUpdate record
-            form.save(updated_by=request.user)
-            messages.success(request, "Ticket updated.")
-            return HttpResponse(status=204)  # No content – HTX will refresh detail
-    else:
-        form = TicketUpdateForm(instance=ticket)
-    return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
+# def update_ticket(request, pk):
+#     ticket = get_object_or_404(Ticket, pk=pk)
+#     if request.method == 'POST':
+#         form = TicketUpdateForm(request.POST, instance=ticket)
+#         if form.is_valid():
+#             # Save changes, create TicketUpdate record
+#             form.save(updated_by=request.user)
+#             messages.success(request, "Ticket updated.")
+#             return HttpResponse(status=204)  # No content – HTX will refresh detail
+#     else:
+#         form = TicketUpdateForm(instance=ticket)
+#     return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
 
-@login_required
-def dashboard(request):
-    # Base queryset: tickets assigned to current user, or all if supervisor
-    if request.user.role and request.user.role.code in ['supervisor', 'admin']:
-        tickets = Ticket.objects.all()
-    else:
-        tickets = Ticket.objects.filter(assigned_to=request.user)
+# @login_required
+# def dashboard(request):
+#     # Base queryset: tickets assigned to current user, or all if supervisor
+#     if request.user.role and request.user.role.code in ['supervisor', 'admin']:
+#         tickets = Ticket.objects.all()
+#     else:
+#         tickets = Ticket.objects.filter(assigned_to=request.user)
     
-    # Apply filters (status, priority, etc.) – we'll use a form
-    form = TicketFilterForm(request.GET)
-    if form.is_valid():
-        if form.cleaned_data.get('status'):
-            tickets = tickets.filter(status=form.cleaned_data['status'])
-        if form.cleaned_data.get('priority'):
-            tickets = tickets.filter(priority=form.cleaned_data['priority'])
-        # etc.
+#     # Apply filters (status, priority, etc.) – we'll use a form
+#     form = TicketFilterForm(request.GET)
+#     if form.is_valid():
+#         if form.cleaned_data.get('status'):
+#             tickets = tickets.filter(status=form.cleaned_data['status'])
+#         if form.cleaned_data.get('priority'):
+#             tickets = tickets.filter(priority=form.cleaned_data['priority'])
+#         # etc.
 
-    context = {
-        'tickets': tickets.select_related('status', 'priority', 'customer'),
-        'filter_form': form,
-    }
-    return render(request, 'tickets/dashboard.html', context)
+#     context = {
+#         'tickets': tickets.select_related('status', 'priority', 'customer'),
+#         'filter_form': form,
+#     }
+#     return render(request, 'tickets/dashboard.html', context)
 
-@login_required
-def ticket_detail_partial(request, pk):
-    ticket = get_object_or_404(Ticket, pk=pk)
-    # Check permission: assigned agent or supervisor
-    if not (request.user == ticket.assigned_to or (request.user.role and request.user.role.code in ['supervisor', 'admin'])):
-        return HttpResponseForbidden()
-    updates = ticket.updates.all().order_by('-created_at')[:10]
-    messages = ticket.messages.all().order_by('-sent_at')[:20]
-    return render(request, 'tickets/partials/ticket_detail.html', {
-        'ticket': ticket,
-        'updates': updates,
-        'messages': messages,
-    })
+# @login_required
+# def ticket_detail_partial(request, pk):
+#     ticket = get_object_or_404(Ticket, pk=pk)
+#     # Check permission: assigned agent or supervisor
+#     if not (request.user == ticket.assigned_to or (request.user.role and request.user.role.code in ['supervisor', 'admin'])):
+#         return HttpResponseForbidden()
+#     updates = ticket.updates.all().order_by('-created_at')[:10]
+#     messages = ticket.messages.all().order_by('-sent_at')[:20]
+#     return render(request, 'tickets/partials/ticket_detail.html', {
+#         'ticket': ticket,
+#         'updates': updates,
+#         'messages': messages,
+#     })

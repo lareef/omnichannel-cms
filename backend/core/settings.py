@@ -3,7 +3,7 @@ from pathlib import Path
 import environ
 
 env = environ.Env()
-environ.Env.read_env(os.path.join(Path(__file__).resolve().parent.parent, '.env'))
+environ.Env.read_env(os.path.join(Path(__file__).resolve().parent.parent, '.env.local'))
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'integration',
     'notifications',
     'analytics',
+    'utilities',
 ]
 
 MIDDLEWARE = [

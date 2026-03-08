@@ -8,9 +8,6 @@ from .models import (
     TicketUpdate,
     SlaRule,
     TicketAttachment,
-    BusinessCalendar,
-    BusinessHourRule,
-    Holiday,
 )
 
 
@@ -22,6 +19,4 @@ admin.site.register(Ticket)
 admin.site.register(SlaRule)
 admin.site.register(TicketUpdate)
 admin.site.register(TicketAttachment)
-admin.site.register(BusinessCalendar)
-admin.site.register(BusinessHourRule)
-admin.site.register(Holiday)
+

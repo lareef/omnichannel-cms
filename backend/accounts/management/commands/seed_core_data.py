@@ -90,10 +90,11 @@ class Command(BaseCommand):
     def create_roles(self):
 
         roles = [
-            ("ADMIN", "Admin"),
-            ("MANAGEMENT", "Management"),
-            ("SUPERVISOR", "Supervisor"),
-            ("EMPLOYEE", "Employee"),
+            ("admin", "Admin"),
+            ("management", "Management"),
+            ("supervisor", "Supervisor"),
+            ("employee", "Employee"),
+            ("agent", "Agent"),
         ]
 
         for code, name in roles:

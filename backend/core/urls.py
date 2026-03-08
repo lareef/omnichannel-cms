@@ -25,6 +25,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),  # if using allauth
     path('', include('public.urls')),            # public-facing (submission, tracking)
     path('dashboard/', include('tickets.urls')), # agent dashboard
+    path('utilities/', include('utilities.urls')), # utility functions
     # ... other apps
 ]
 

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Edit{% else %}Add{% endif %} Holiday{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white shadow rounded-lg p-6">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">{% if object %}Edit{% else %}Add{% endif %} Holiday</h1>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="mt-6 flex justify-end space-x-2">
+                {% if view.kwargs.calendar_pk %}
+                    <a href="{% url 'utilities:calendar_detail' view.kwargs.calendar_pk %}" class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">Cancel</a>
+                {% else %}
+                    <a href="{% url 'utilities:calendar_detail' object.calendar.pk %}" class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">Cancel</a>
+                {% endif %}
+                <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

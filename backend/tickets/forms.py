@@ -4,21 +4,32 @@ from django.db.models import Q
 
 
 class TicketFilterForm(forms.Form):
-    STATUS_CHOICES = [('', 'All')] + list(Ticket.objects.values_list('status__id', 'status__name').distinct())
-    PRIORITY_CHOICES = [('', 'All')] + list(Ticket.objects.values_list('priority__id', 'priority__name').distinct())
     ASSIGNMENT_CHOICES = [
         ('', 'All'),
         ('assigned_to_me', 'Assigned to me'),
         ('unassigned', 'Unassigned'),
     ]
 
-    status = forms.ChoiceField(choices=STATUS_CHOICES, required=False)
-    priority = forms.ChoiceField(choices=PRIORITY_CHOICES, required=False)
+    status = forms.ChoiceField(required=False)
+    priority = forms.ChoiceField(required=False)
     assignment = forms.ChoiceField(choices=ASSIGNMENT_CHOICES, required=False)
     search = forms.CharField(required=False, widget=forms.TextInput(attrs={'placeholder': 'Search ticket # or subject'}))
 
     def __init__(self, *args, queryset=None, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        # Set choices dynamically to avoid database queries at import time
+        try:
+            status_choices = [('', 'All')] + list(Ticket.objects.values_list('status__id', 'status__name').distinct())
+            priority_choices = [('', 'All')] + list(Ticket.objects.values_list('priority__id', 'priority__name').distinct())
+            
+            self.fields['status'].choices = status_choices
+            self.fields['priority'].choices = priority_choices
+        except:
+            # Fallback if database is not ready (e.g., during migrations)
+            self.fields['status'].choices = [('', 'All')]
+            self.fields['priority'].choices = [('', 'All')]
+        
         if queryset:
             # Dynamically set choices based on queryset (optional)
             pass

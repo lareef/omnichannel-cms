@@ -19,7 +19,7 @@ def home(request):
 def track_ticket(request, token):
     token_obj = get_object_or_404(TicketTrackingToken, token=token, expires_at__gte=timezone.now())
     ticket = token_obj.ticket
-    message_list = ticket.messages.filter(is_internal_note=False).order_by('sent_at')
+    message_list = ticket.messages.filter(is_internal_note=False).exclude(sender_type='system').order_by('sent_at')
 
     if request.method == 'POST':
         reply_text = request.POST.get('reply')
@@ -71,7 +71,7 @@ def track_ticket(request, token):
 def track_ticket_no_htmx(request, token):
     token_obj = get_object_or_404(TicketTrackingToken, token=token, expires_at__gte=timezone.now())
     ticket = token_obj.ticket
-    messages_list = ticket.messages.filter(is_internal_note=False).order_by('sent_at')  # exclude internal notes for public
+    messages_list = ticket.messages.filter(is_internal_note=False).exclude(sender_type='system').order_by('sent_at')  # exclude internal notes & system messages for public
 
     if request.method == 'POST':
         reply_text = request.POST.get('reply')
@@ -111,7 +111,7 @@ def track_ticket_no_htmx(request, token):
 def old_track_ticket(request, token):
     token_obj = get_object_or_404(TicketTrackingToken, token=token, expires_at__gte=timezone.now())
     ticket = token_obj.ticket
-    messages_list = ticket.messages.all().order_by('sent_at')
+    messages_list = ticket.messages.filter(is_internal_note=False).exclude(sender_type='system').order_by('sent_at')
     if request.method == 'POST':
         reply_text = request.POST.get('reply')
         if reply_text:

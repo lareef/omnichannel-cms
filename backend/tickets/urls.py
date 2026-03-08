@@ -18,4 +18,5 @@ urlpatterns = [
     path('ticket/<int:pk>/messages/', views.message_list_partial, name='message_list_partial'),
     path('ticket/<int:pk>/updates/', views.update_list_partial, name='update_list_partial'),
     path('ticket/<int:pk>/add-message-with-attachments/', views.add_message_with_attachments, name='add_message_with_attachments'),
+
 ]

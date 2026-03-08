@@ -6,6 +6,7 @@ from django.db.models import Q
 
 @shared_task
 def check_sla_breaches():
+    print("Checking for SLA breaches... @ ", timezone.now() )
     now = timezone.now()
     # Response breaches
     response_breached = Ticket.objects.filter(

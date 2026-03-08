@@ -1,0 +1,14 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Python files
+*.py text diff=python
+
+# Dockerfiles
+Dockerfile text
+
+# Binary files (images, archives)
+*.png binary
+*.jpg binary
+*.pdf binary
+*.zip binary
