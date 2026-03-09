@@ -1,0 +1,42 @@
+<div class="bg-white shadow sm:rounded-lg mb-8">
+    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Conversation</h3>
+    </div>
+    <div class="px-4 py-5 sm:px-6 space-y-4" id="message-list">
+        {% for message in messages %}
+            <div class="flex {% if message.sender_type == 'customer' %}justify-start{% else %}justify-end{% endif %}">
+                <div class="max-w-lg rounded-lg p-3 {% if message.is_internal_note %}bg-yellow-100 border border-yellow-300{% elif message.sender_type == 'customer' %}bg-gray-100{% else %}bg-indigo-100{% endif %}">
+                    <div class="flex items-center space-x-2 text-xs text-gray-600 mb-1">
+                        <span class="font-semibold">{{ message.sender_name }}</span>
+                        <span>{{ message.sent_at|date:"M j, Y, g:i a" }}</span>
+                        {% if message.is_internal_note %}
+                            <span class="bg-yellow-200 text-yellow-800 px-1 rounded">Internal Note</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-gray-800 whitespace-pre-wrap">{{ message.content }}</p>
+
+                    <!-- Display attachments for this message -->
+                {% if message.attachments.exists %}
+                    <div class="mt-2 border-t pt-2">
+                        <p class="text-xs font-medium text-gray-500">Attachment:</p>
+                        <ul class="list-disc list-inside">
+                            {% for attachment in message.attachments.all %}
+                                <li>
+                                    <a href="javascript:void(0)" 
+                                    onclick="previewAttachment('{{ attachment.file.url }}', '{{ attachment.original_name }}', '{{ attachment.content_type }}')"
+                                    class="text-xs text-indigo-600 hover:text-indigo-800 hover:underline">
+                                        {{ attachment.original_name }}
+                                    </a>
+                                    <span class="text-xs text-gray-400">({{ attachment.size|filesizeformat }})</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-gray-500 text-center">No messages yet.</p>
+        {% endfor %}
+    </div>
+</div>

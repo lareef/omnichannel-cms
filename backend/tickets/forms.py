@@ -113,7 +113,7 @@ class TicketUpdateForm(forms.ModelForm):
                     comment=self.cleaned_data.get('comment', ''),
                     **changes
                 )
-        return ticket
+        return ticket, changes  # return changes for notification logic in view
     
 class old_TicketUpdateForm(forms.ModelForm):
     comment = forms.CharField(

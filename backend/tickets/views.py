@@ -10,6 +10,7 @@ from django.views.generic import ListView, DetailView, View
 from django.contrib import messages
 from django.template.loader import render_to_string
 from django.utils import timezone
+from notifications.utils import notify_ticket_update
 
 
 # ----- Mixins for Role-Based Access -----
@@ -99,6 +100,8 @@ class TicketDetailView(LoginRequiredMixin, AgentRequiredMixin, DetailView):
         context['updates'] = ticket.updates.select_related('updated_by').order_by('-created_at')[:20]
         context['message_form'] = MessageForm()
         context['update_form'] = TicketUpdateForm(instance=ticket)
+        print(f"Ticket ID: {ticket.id}, updates count: {ticket.updates.count()}")
+
         return context
 
 class old_TicketDetailView(LoginRequiredMixin, AgentRequiredMixin, DetailView):
@@ -137,10 +140,15 @@ def ticket_detail_partial(request, pk):
     if user.role and user.role.code == 'agent' and not (ticket.assigned_to == user or (ticket.assigned_to is None and ticket.department == user.department)):
         return HttpResponseForbidden()
 
-    messages_qs = ticket.messages.select_related('sender_user').prefetch_related('attachments').order_by('sent_at')
+    # messages_qs = ticket.messages.select_related('sender_user').prefetch_related('attachments').order_by('sent_at')
     context = {
+        # 'ticket': ticket,
+        # 'messages': messages_qs,
         'ticket': ticket,
-        'messages': messages_qs,
+        'messages': ticket.messages.select_related('sender_user').prefetch_related('attachments').order_by('sent_at'),
+        'updates': ticket.updates.select_related('updated_by').order_by('-created_at')[:20],
+        'message_form': MessageForm(),
+        'update_form': TicketUpdateForm(instance=ticket),
     }
     html = render_to_string('tickets/partials/ticket_detail.html', context, request=request)
     return HttpResponse(html)
@@ -155,7 +163,10 @@ def update_ticket(request, pk):
     if request.method == 'POST':
         form = TicketUpdateForm(request.POST, instance=ticket, user=user)  # pass user
         if form.is_valid():
-            form.save(updated_by=user)
+            ticket, changes = form.save(updated_by=user)
+            # Create notifications
+            if changes:
+                notify_ticket_update(ticket, changes, updated_by=request.user)
             messages.success(request, "Ticket updated successfully.")
             # Return updated detail partial
             messages_qs = ticket.messages.select_related('sender_user').prefetch_related('attachments').order_by('sent_at')
