@@ -7,6 +7,82 @@
 <div class="max-w-7xl mx-auto">
     <h1 class="text-2xl font-bold mb-6">Ticket Dashboard</h1>
 
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+    <!-- Open Tickets -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-indigo-500 rounded-md p-3">
+                        <svg class="h-6 w-6 text-white"><use href="#heroicon-ticket"></use></svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Open Tickets</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ open_tickets_count }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unassigned -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
+                        <svg class="h-6 w-6 text-white"><use href="#heroicon-ticket-un"></use></svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Unassigned</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ unassigned_count }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overdue Response -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-red-500 rounded-md p-3">
+                        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Response Overdue</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ overdue_response_count }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Tickets -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+                        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">My Tickets</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ my_tickets_count }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <!-- Filter Form -->
     <form method="get" class="bg-white p-4 rounded shadow mb-6" id="filter-form">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -57,8 +133,16 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ ticket.ticket_number }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ ticket.customer_name }}</td>
                     <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{{ ticket.subject }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ ticket.status.name }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if ticket.status.code == 'open' %}bg-green-100 text-green-800
+                            {% elif ticket.status.code == 'in_progress' %}bg-yellow-100 text-yellow-800
+                            {% elif ticket.status.is_closed_state %}bg-gray-100 text-gray-800
+                            {% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ ticket.status.name }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                             {% if ticket.priority.level == 5 %}bg-red-100 text-red-800
                             {% elif ticket.priority.level == 4 %}bg-orange-100 text-orange-800
@@ -68,12 +152,19 @@
                             {{ ticket.priority.name }}
                         </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ ticket.assigned_to.get_full_name|default:"Unassigned" }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if ticket.assigned_to %}
+                            <div class="flex items-center">
+                                <div class="h-6 w-6 rounded-full bg-gray-300 flex items-center justify-center text-xs text-white">
+                                    {{ ticket.assigned_to.get_initials }}
+                                </div>
+                                <span class="ml-2">{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}</span>
+                            </div>
+                        {% else %}
+                            <span class="text-gray-400">Unassigned</span>
+                        {% endif %}
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ ticket.created_at|date:"Y-m-d H:i" }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" class="px-6 py-4 text-center text-gray-500">No tickets found.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -96,7 +187,7 @@
     {% endif %}
 </div>
 
-<!-- Modal -->
+<!-- Modal 
 <div id="modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center hidden z-50" _="on click if event.target.id == 'modal' add .hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto relative">
         <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10" _="on click add .hidden to #modal">
@@ -105,7 +196,25 @@
             </svg>
         </button>
         <div class="p-6" id="modal-content">
-            <!-- Content loaded via HTMX -->
+        </div>
+    </div>
+</div>
+-->
+
+<!-- Modal -->
+<div id="modal" class="fixed inset-0 z-50 hidden" 
+     _="on click if event.target.id == 'modal' add .hidden">
+    <!-- Backdrop with blur -->
+    <div class="absolute inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
+
+    <!-- Modal panel -->
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl">
+                <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4" id="modal-content">
+                    <!-- Content will be injected by HTMX -->
+                </div>
+            </div>
         </div>
     </div>
 </div>

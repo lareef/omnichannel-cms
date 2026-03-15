@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% if object %}Edit{% else %}Add{% endif %} Product{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white shadow rounded-lg p-6">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">
+            {% if object %}Edit Product{% else %}Add New Product{% endif %}
+        </h1>
+        {% crispy form %}
+        <div class="mt-4">
+            <a href="{% url 'products:product_list' %}" class="text-gray-600 hover:text-gray-900">Cancel</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

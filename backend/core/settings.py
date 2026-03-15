@@ -29,7 +29,11 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'django_celery_beat',
     'django_celery_results',
+    'django_filters',
+    'django_tables2',
     # 'django_tailwind_cli',
+    'crispy_forms',
+    'crispy_tailwind',
     # Local apps
     'accounts',
     'customers',
@@ -107,6 +111,26 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+EMAIL_HOST = env('EMAIL_HOST')
+EMAIL_PORT = env.int('EMAIL_PORT')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@localhost')
+# DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
+# You can leave EMAIL_HOST_USER and EMAIL_HOST_PASSWORD blank for MailHog
+
+ACCOUNT_FORMS = {
+    'login': 'accounts.forms.CustomLoginForm',
+    'signup': 'accounts.forms.CustomSignupForm',
+    'reset_password': 'accounts.forms.CustomResetPasswordForm',
+    'change_password': 'accounts.forms.CustomChangePasswordForm',
+    'reset_password_from_key': 'accounts.forms.CustomResetPasswordKeyForm',
+    # ... other forms
+    
+    # etc.
+}
+
 # Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -130,6 +154,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 TAILWIND_CLI_PATH = BASE_DIR / 'static' / 'css'   # where output.css will be placed
 TAILWIND_CLI_CONFIG_FILE = BASE_DIR.parent / 'frontend' / 'tailwind.config.js'
 TAILWIND_CLI_SRC_CSS = BASE_DIR.parent / 'frontend' / 'src' / 'input.css'
+CRISPY_ALLOWED_TEMPLATE_PACKS = "tailwind"
+CRISPY_TEMPLATE_PACK = "tailwind"
 
 # Celery
 CELERY_BROKER_URL = env('REDIS_URL')
@@ -142,6 +168,60 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # Django Debug Toolbar (local only)
 INTERNAL_IPS = ['127.0.0.1']
+
+# DJANGO_TABLES2_TABLE_ATTRS = {
+#     "class": "min-w-full divide-y divide-gray-200 shadow overflow-hidden sm:rounded-lg",
+#     "thead": {
+#         "class": "bg-gray-100",
+#     },
+#     "th": {
+#         "class": "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
+#     },
+#     "td": {
+#         "class": "px-6 py-4 whitespace-nowrap text-sm text-gray-900",
+#     },
+#     "tr": {
+#         "class": "bg-white hover:bg-gray-50",
+#     },
+# }
+
+# DJANGO_TABLES2_TABLE_ATTRS = {
+#     "class": "bg-white shadow divide-y divide-gray-200 overflow-hidden sm:rounded-lg",
+#     "thead": {
+#         "class": "bg-gray-50",
+#     },
+#     "tbody": {
+#         "class": "bg-white divide-y divide-gray-200",
+#     },
+#     "th": {
+#         "class": "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
+#     },
+#     "td": {
+#         "class": "px-6 py-4 whitespace-nowrap text-sm text-gray-900",
+#     },
+#     "tr": {
+#         "class": "bg-white hover:bg-gray-500",
+#     },
+# }
+
+DJANGO_TABLES2_TABLE_ATTRS = {
+    "class": "min-w-full bg-white shadow divide-y divide-gray-200 overflow-hidden sm:rounded-lg",
+    "thead": {
+        "class": "bg-gray-50",
+    },
+    "tbody": {
+        "class": "bg-white divide-y divide-gray-200",
+    },
+    "th": {
+        "class": "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
+    },
+    "td": {
+        "class": "px-6 py-4 whitespace-nowrap text-sm text-gray-900",
+    },
+    "tr": {
+        "class": "bg-white hover:bg-gray-100",  # lighter hover
+    },
+}
 
 # django-allauth configuration (if used)
 AUTHENTICATION_BACKENDS = [
@@ -156,4 +236,18 @@ USE_I18N = True
 USE_TZ = True
 
 LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/accounts/login/"
+# LOGOUT_REDIRECT_URL = "/accounts/login/"
+
+# Allauth settings
+# ACCOUNT_AUTHENTICATION_METHOD = 'username_email'  # or 'username', 'email'
+# ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # or 'optional' or 'mandatory'
+ACCOUNT_UNIQUE_EMAIL = True
+# ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
+ACCOUNT_LOGOUT_REDIRECT_URL = '/'          # after logout
+LOGIN_REDIRECT_URL = '/dashboard/'         # after login
+LOGIN_URL = '/accounts/login/'
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']

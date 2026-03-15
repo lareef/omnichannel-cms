@@ -10,5 +10,23 @@
         <p class="text-gray-800 whitespace-pre-wrap">{{ message.content }}</p>
     </div>
 
-    backend/templates/tickets/partials/single_message.html
+    {% if message.attachments.exists %}
+    <div class="mt-2 border-t pt-2">
+        <p class="text-xs font-medium text-gray-500">Attachmentss:</p>
+        <ul class="list-disc list-inside">
+            {% for attachment in message.attachments.all %}
+                <li>
+                    <a href="javascript:void(0)" 
+                       onclick="previewAttachment('{{ attachment.file.url }}', '{{ attachment.original_name }}', '{{ attachment.content_type }}')"
+                       class="text-xs text-indigo-600 hover:text-indigo-800 hover:underline">
+                        {{ attachment.original_name }}
+                    </a>
+                    <span class="text-xs text-gray-400">({{ attachment.size|filesizeformat }})</span>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+
 </div>

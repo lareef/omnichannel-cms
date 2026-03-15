@@ -1,32 +1,27 @@
 <div class="flex {% if message.sender_type == 'customer' %}justify-start{% else %}justify-end{% endif %}">
-    <div class="max-w-lg rounded-lg p-3 {% if message.is_internal_note %}bg-yellow-100 border border-yellow-300{% elif message.sender_type == 'customer' %}bg-gray-100{% else %}bg-indigo-100{% endif %}">
+    <div class="max-w-lg rounded-lg p-3 {% if message.is_internal_note %}bg-yellow-50 border border-yellow-200{% elif message.sender_type == 'customer' %}bg-gray-100{% else %}bg-indigo-50{% endif %}">
         <div class="flex items-center space-x-2 text-xs text-gray-600 mb-1">
             <span class="font-semibold">{{ message.sender_name }}</span>
-            <span>{{ message.sent_at|date:"Y-m-d H:i" }}</span>
+            <span>{{ message.sent_at|date:"M j, Y, g:i a" }}</span>
             {% if message.is_internal_note %}
-                <span class="bg-yellow-200 text-yellow-800 px-1 rounded">Internal</span>
+                <span class="bg-yellow-200 text-yellow-800 px-1 rounded text-xs">Internal</span>
             {% endif %}
         </div>
         <p class="text-gray-800 whitespace-pre-wrap">{{ message.content }}</p>
+        {% if message.attachments.exists %}
+            <div class="mt-2 border-t pt-2">
+                <p class="text-xs font-medium text-gray-500">Attachments:</p>
+                <ul class="list-disc list-inside">
+                    {% for attachment in message.attachments.all %}
+                        <li>
+                            <a href="{{ attachment.file.url }}" target="_blank" class="text-xs text-indigo-600 hover:text-indigo-800 hover:underline">
+                                {{ attachment.original_name }}
+                            </a>
+                            <span class="text-xs text-gray-400">({{ attachment.size|filesizeformat }})</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
     </div>
-
-    {% if message.attachments.exists %}
-    <div class="mt-2 border-t pt-2">
-        <p class="text-xs font-medium text-gray-500">Attachmentss:</p>
-        <ul class="list-disc list-inside">
-            {% for attachment in message.attachments.all %}
-                <li>
-                    <a href="javascript:void(0)" 
-                       onclick="previewAttachment('{{ attachment.file.url }}', '{{ attachment.original_name }}', '{{ attachment.content_type }}')"
-                       class="text-xs text-indigo-600 hover:text-indigo-800 hover:underline">
-                        {{ attachment.original_name }}
-                    </a>
-                    <span class="text-xs text-gray-400">({{ attachment.size|filesizeformat }})</span>
-                </li>
-            {% endfor %}
-        </ul>
-    </div>
-    {% endif %}
-
-
 </div>

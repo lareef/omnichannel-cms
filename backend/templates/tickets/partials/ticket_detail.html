@@ -1,55 +1,116 @@
 <div class="flex justify-between items-start mb-4">
-    <h2 class="text-xl font-bold">Ticket #{{ ticket.ticket_number }}</h2>
-    <button class="text-gray-500 hover:text-gray-700" _="on click add .hidden to #modal">✕</button>
+    <div>
+        <h2 class="text-xl font-bold text-gray-900">Ticket #{{ ticket.ticket_number }}</h2>
+        <p class="text-sm text-gray-500">Created {{ ticket.created_at|date:"F j, Y, g:i a" }}</p>
+    </div>
+    <button class="text-gray-500 hover:text-gray-700 text-2xl leading-none" _="on click add .hidden to #modal">&times;</button>
 </div>
 
-<!-- Ticket Info -->
-<div class="grid grid-cols-2 gap-4 mb-4">
+<!-- Ticket Metadata Grid -->
+<div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg mb-4">
     <div>
-        <p class="text-sm text-gray-600">Customer: <span class="font-medium">{{ ticket.customer_name }}</span></p>
-        <p class="text-sm text-gray-600">Contact: {{ ticket.customer_contact }}</p>
-        <p class="text-sm text-gray-600">Channel: {{ ticket.channel.name }}</p>
+        <p class="text-xs text-gray-500">Customer</p>
+        <p class="text-sm font-medium">{{ ticket.customer_name }}</p>
+        <p class="text-xs text-gray-600">{{ ticket.customer_contact }}</p>
     </div>
     <div>
-        <p class="text-sm text-gray-600">Status: <span class="font-medium">{{ ticket.status.name }}</span></p>
-        <p class="text-sm text-gray-600">Priority: <span class="font-medium">{{ ticket.priority.name }}</span></p>
-        <p class="text-sm text-gray-600">Assigned to: {{ ticket.assigned_to.get_full_name|default:"Unassigned" }}</p>
+        <p class="text-xs text-gray-500">Channel</p>
+        <p class="text-sm font-medium">{{ ticket.channel.name }}</p>
+    </div>
+    <div>
+        <p class="text-xs text-gray-500">Category</p>
+        <p class="text-sm font-medium">{{ ticket.category.name }}</p>
+    </div>
+    <div>
+        <p class="text-xs text-gray-500">Department</p>
+        <p class="text-sm font-medium">{{ ticket.department.name|default:"—" }}</p>
+    </div>
+    <div>
+        <p class="text-xs text-gray-500">Priority</p>
+        <span class="px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full
+            {% if ticket.priority.level == 5 %}bg-red-100 text-red-800
+            {% elif ticket.priority.level == 4 %}bg-orange-100 text-orange-800
+            {% elif ticket.priority.level == 3 %}bg-yellow-100 text-yellow-800
+            {% elif ticket.priority.level == 2 %}bg-blue-100 text-blue-800
+            {% else %}bg-green-100 text-green-800{% endif %}">
+            {{ ticket.priority.name }}
+        </span>
+    </div>
+    <div>
+        <p class="text-xs text-gray-500">Status</p>
+        <span class="px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full
+            {% if ticket.status.is_closed_state %}bg-gray-100 text-gray-800
+            {% elif ticket.status.code == 'in_progress' %}bg-yellow-100 text-yellow-800
+            {% else %}bg-green-100 text-green-800{% endif %}">
+            {{ ticket.status.name }}
+        </span>
+    </div>
+    <div>
+        <p class="text-xs text-gray-500">Assigned to</p>
+        {% if ticket.assigned_to %}
+            <div class="flex items-center">
+                <div class="h-5 w-5 rounded-full bg-gray-400 flex items-center justify-center text-xs text-white mr-1">
+                    {{ ticket.assigned_to.get_initials }}
+                </div>
+                <span class="text-sm">{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}</span>
+            </div>
+        {% else %}
+            <p class="text-sm text-gray-400">Unassigned</p>
+        {% endif %}
+    </div>
+    <div>
+        <p class="text-xs text-gray-500">SLA</p>
+        <p class="text-sm">
+            {% if ticket.response_due_at %}
+                Response due: {{ ticket.response_due_at|date:"M j, H:i" }}
+                {% if ticket.is_response_breached %}<span class="text-red-600 ml-1">(breached)</span>{% endif %}
+            {% endif %}
+        </p>
     </div>
 </div>
 
 <!-- Subject & Description -->
 <div class="mb-4">
-    <h3 class="text-lg font-semibold">Subject</h3>
-    <p class="text-gray-800">{{ ticket.subject }}</p>
-    <h3 class="text-lg font-semibold mt-2">Description</h3>
-    <p class="text-gray-800 whitespace-pre-wrap">{{ ticket.description }}</p>
+    <h3 class="text-md font-semibold text-gray-700 mb-1">Subject</h3>
+    <p class="text-gray-800 bg-gray-50 p-3 rounded">{{ ticket.subject }}</p>
+    <h3 class="text-md font-semibold text-gray-700 mt-3 mb-1">Description</h3>
+    <p class="text-gray-800 bg-gray-50 p-3 rounded whitespace-pre-wrap">{{ ticket.description }}</p>
 </div>
 
 <!-- Update Form -->
 <div class="mb-4 border-t pt-4">
-    <h3 class="text-lg font-semibold mb-2">Update Ticket</h3>
+    <h3 class="text-md font-semibold text-gray-700 mb-2">Update Ticket</h3>
     <div id="update-form-container" hx-trigger="load" hx-get="{% url 'tickets:update_ticket' ticket.pk %}"></div>
 </div>
 
-<!-- Recent Activity / Ticket Updates -->
-{% include "tickets/partials/_ticket_updates.html" with updates=updates %}
-<!-- Conversation Thread -->
-{% include "tickets/partials/_ticket_conversations.html" with messages=messages %}
+<!-- Conversation -->
+<div class="mb-4 border-t pt-4">
+    <h3 class="text-md font-semibold text-gray-700 mb-2">Conversation</h3>
+    <div id="message-list" hx-trigger="load" hx-get="{% url 'tickets:message_list_partial' ticket.pk %}" hx-swap="innerHTML"></div>
 
-<form id="message-form"
-      method="post"
-      enctype="multipart/form-data"
-      hx-post="{% url 'tickets:add_message_with_attachments' ticket.pk %}"
-      hx-target="#message-list"
-      hx-swap="beforeend"
-      hx-encoding="multipart/form-data"
-      hx-on="htmx:afterRequest: this.reset()">
-    {% csrf_token %}
-    <textarea name="content" rows="2" class="w-full border rounded p-2" placeholder="Type your reply..."></textarea>
-    <div class="flex items-center mt-2">
-        <input type="checkbox" name="is_internal_note" id="is_internal_note" class="mr-2">
-        <label for="is_internal_note">Internal note (not visible to customer)</label>
-        <input type="file" name="attachments" multiple class="ml-4 text-sm">
-        <button type="submit" class="ml-auto bg-indigo-600 text-white px-4 py-2 rounded">Send</button>
-    </div>
-</form>
+    <!-- Add Message Form (with file upload) -->
+    <form id="message-form"
+          method="post"
+          enctype="multipart/form-data"
+          hx-post="{% url 'tickets:add_message_with_attachments' ticket.pk %}"
+          hx-target="#message-list"
+          hx-swap="beforeend"
+          hx-encoding="multipart/form-data"
+          hx-on="htmx:afterRequest: this.reset()"
+          class="mt-4">
+        {% csrf_token %}
+        <textarea name="content" rows="2" class="w-full border border-gray-300 rounded-lg p-2" placeholder="Type your reply..."></textarea>
+        <div class="flex items-center mt-2">
+            <input type="checkbox" name="is_internal_note" id="is_internal_note" class="mr-2 rounded">
+            <label for="is_internal_note" class="text-sm text-gray-700">Internal note (not visible to customer)</label>
+            <input type="file" name="attachments" multiple class="ml-4 text-sm">
+            <button type="submit" class="ml-auto bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Send</button>
+        </div>
+    </form>
+</div>
+
+<!-- Recent Activity -->
+<div class="border-t pt-4">
+    <h3 class="text-md font-semibold text-gray-700 mb-2">Recent Activity</h3>
+    <div id="update-list" hx-trigger="load" hx-get="{% url 'tickets:update_list_partial' ticket.pk %}"></div>
+</div>

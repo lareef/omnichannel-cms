@@ -11,19 +11,42 @@ from django.contrib import messages
 from django.template.loader import render_to_string
 from django.utils import timezone
 from notifications.utils import notify_ticket_update
-
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import render
 
 # ----- Mixins for Role-Based Access -----
+# class AgentRequiredMixin(UserPassesTestMixin):
+#     """Allow only agents, supervisors, and admins."""
+#     def test_func(self):
+#         user = self.request.user
+#         if not user.is_authenticated:
+#             return False
+#         # Assuming role codes: 'agent', 'supervisor', 'admin'
+#         return user.role and user.role.code in ['agent', 'supervisor', 'admin']
+
 class AgentRequiredMixin(UserPassesTestMixin):
-    """Allow only agents, supervisors, and admins."""
+    """Allow only users with a valid agent/supervisor/admin role."""
     def test_func(self):
         user = self.request.user
         if not user.is_authenticated:
             return False
-        # Assuming role codes: 'agent', 'supervisor', 'admin'
-        return user.role and user.role.code in ['agent', 'supervisor', 'admin']
+        # Must have a role and the role code must be in allowed list
+        if not user.role:
+            return False
+        return user.role.code in ['agent', 'supervisor', 'admin', 'manager']
 
-
+    def handle_no_permission(self):
+        user = self.request.user
+        if user.is_authenticated and not user.role:
+            # Authenticated but no role – show a custom message
+            return render(
+                self.request,
+                'tickets/role_required_error.html',
+                status=403
+            )
+        # For all other cases (not authenticated, or other reasons), raise 403
+        raise PermissionDenied
 class SupervisorRequiredMixin(UserPassesTestMixin):
     """Allow only supervisors and admins."""
     def test_func(self):
@@ -31,7 +54,7 @@ class SupervisorRequiredMixin(UserPassesTestMixin):
         return user.is_authenticated and user.role and user.role.code in ['supervisor', 'admin']
 
 # ----- Dashboard / Ticket List -----
-class DashboardView(LoginRequiredMixin, ListView):
+class DashboardView(LoginRequiredMixin, AgentRequiredMixin, ListView):
     model = Ticket
     template_name = 'tickets/dashboard.html'
     context_object_name = 'tickets'
@@ -64,12 +87,27 @@ class DashboardView(LoginRequiredMixin, ListView):
             queryset = self.filter_form.filter_queryset(queryset)
         return queryset
 
+    # def get_context_data(self, **kwargs):
+    #     context = super().get_context_data(**kwargs)
+    #     context['filter_form'] = self.filter_form
+    #     return context
+
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['filter_form'] = self.filter_form
-        return context
+            context = super().get_context_data(**kwargs)
+            user = self.request.user
+            base_qs = Ticket.objects.all()
 
+            # Counts for stats cards
+            context['open_tickets_count'] = base_qs.filter(status__is_closed_state=False).count()
+            context['unassigned_count'] = base_qs.filter(assigned_to__isnull=True).count()
+            context['overdue_response_count'] = base_qs.filter(
+                response_due_at__lt=timezone.now(),
+                first_response_at__isnull=True
+            ).count()
+            context['my_tickets_count'] = base_qs.filter(assigned_to=user).count()
 
+            context['filter_form'] = self.filter_form
+            return context
 # Simple ticket list view (same as dashboard but without the dashboard-specific UI)
 class TicketListView(DashboardView):
     template_name = 'tickets/partials/ticket_list.html'
@@ -100,7 +138,6 @@ class TicketDetailView(LoginRequiredMixin, AgentRequiredMixin, DetailView):
         context['updates'] = ticket.updates.select_related('updated_by').order_by('-created_at')[:20]
         context['message_form'] = MessageForm()
         context['update_form'] = TicketUpdateForm(instance=ticket)
-        print(f"Ticket ID: {ticket.id}, updates count: {ticket.updates.count()}")
 
         return context
 
@@ -175,7 +212,10 @@ def update_ticket(request, pk):
                 'messages': messages_qs,
             }
             html = render_to_string('tickets/partials/ticket_detail.html', context, request=request)
-            return HttpResponse(html)
+            # return HttpResponse(html)
+            response = HttpResponse(html)
+            response['HX-Trigger'] = '{"showToast": {"message": "Ticket updated successfully", "type": "success"}}'
+            return response
         else:
             html = render_to_string('tickets/partials/update_form.html', {'form': form, 'ticket': ticket}, request=request)
             return HttpResponse(html, status=400)

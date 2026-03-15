@@ -43,6 +43,12 @@ class User(AbstractUser):
 
     class Meta:
         ordering = ['username']
+        
+    @property
+    def get_initials(self):
+        if self.first_name and self.last_name:
+            return f"{self.first_name[0]}{self.last_name[0]}".upper()
+        return self.username[:2].upper()
 
     def __str__(self):
         return self.get_full_name() or self.username

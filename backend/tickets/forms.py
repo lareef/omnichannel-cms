@@ -1,6 +1,9 @@
 from django import forms
 from .models import Ticket, TicketUpdate, Message
 from django.db.models import Q
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Submit
+
 
 
 class TicketFilterForm(forms.Form):
@@ -158,7 +161,12 @@ class old_TicketUpdateForm(forms.ModelForm):
         return ticket
 
 
-class MessageForm(forms.ModelForm):
+class MessageForm(forms.ModelForm):  
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.add_input(Submit('submit', 'Send', css_class='bg-indigo-600 text-white'))
     class Meta:
         model = Message
         fields = ['content', 'is_internal_note']

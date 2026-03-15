@@ -31,8 +31,10 @@
     <div id="update-form-container" hx-trigger="load" hx-get="{% url 'tickets:update_ticket' ticket.pk %}"></div>
 </div>
 
+<!-- Recent Activity / Ticket Updates -->
+{% include "tickets/partials/_ticket_updates.html" with updates=updates %}
 <!-- Conversation Thread -->
-
+{% include "tickets/partials/_ticket_conversations.html" with messages=messages %}
 
 <form id="message-form"
       method="post"

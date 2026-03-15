@@ -5,6 +5,119 @@ from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from .models import Notification
 from .tasks import send_email_notification  # we'll create this task
+from django.contrib.auth import get_user_model
+from django.db.models import Q
+from celery import shared_task
+from django.utils import timezone
+
+
+User = get_user_model()
+
+def notify_admins(subject, message, related_object=None, send_email=True):
+    """
+    Send notification to all admin users (superusers and users with admin role).
+    Creates in‑app notification and optionally sends email asynchronously.
+
+    Args:
+        subject (str): Short title for the notification.
+        message (str): Detailed message.
+        related_object (Model instance, optional): Django model instance to link.
+        send_email (bool): Whether to also send an email.
+    """
+    # Get all admin users: superusers OR users with role code 'admin'
+    admins = User.objects.filter(
+        Q(is_superuser=True) | Q(role__code='admin')
+    ).distinct()
+
+    for admin in admins:
+        # Create in‑app notification
+        notif = Notification.objects.create(
+            recipient=admin,
+            type='in_app',
+            title=subject,
+            content=message,
+            related_object=related_object,
+            status='pending'
+        )
+        # Queue email if requested and admin has an email address
+        if send_email and admin.email:
+            send_email_notification.delay(
+                recipient_id=admin.id,
+                subject=subject,
+                message=message,
+                notification_id=notif.id
+            )
+
+# notifications/utils.py
+def notify_roles(subject, message, related_object=None, send_email=True, role=None):
+    """
+    Send notification to users with specified roles.
+    If role is None, defaults to superusers and users with role code 'admin' (original behavior).
+
+    Args:
+        subject (str): Short title for the notification.
+        message (str): Detailed message.
+        related_object (Model instance, optional): Django model instance to link.
+        send_email (bool): Whether to also send an email.
+        role (str or list): Role code(s) to notify. If None, uses default admin+superuser.
+    """
+    # Build query based on role parameter
+    if role is None:
+        # Default: superusers OR role='admin'
+        query = Q(is_superuser=True) | Q(role__code='admin')
+    else:
+        # Convert single string to list
+        if isinstance(role, str):
+            role_codes = [role]
+        else:
+            role_codes = role
+        query = Q(role__code__in=role_codes)
+
+    users = User.objects.filter(query).distinct()
+
+    for user in users:
+        # Create in‑app notification
+        notif = Notification.objects.create(
+            recipient=user,
+            type='in_app',
+            title=subject,
+            content=message,
+            related_object=related_object,
+            status='pending'
+        )
+        # Queue email if requested and user has an email address
+        if send_email and user.email:
+            send_email_notification.delay(
+                recipient_id=user.id,
+                subject=subject,
+                message=message,
+                notification_id=notif.id
+            )
+            
+@shared_task
+def send_email_notification(recipient_id, subject, message, notification_id=None):
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    try:
+        user = User.objects.get(id=recipient_id)
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+        if notification_id:
+            Notification.objects.filter(id=notification_id).update(
+                status='sent',
+                sent_at=timezone.now()
+            )
+    except Exception as e:
+        if notification_id:
+            Notification.objects.filter(id=notification_id).update(
+                status='failed',
+                error_message=str(e)
+            )
 def send_notification(user, title, message, related_object=None):
     # Store in DB
     notif = Notification.objects.create(

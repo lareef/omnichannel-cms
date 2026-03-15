@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-6">Submit a Complaint</h1>
+    {% crispy form %}
+    <div id="dynamic-fields">
+        <!-- HTMX will load category fields here -->
+    </div>
+</div>
+{% endblock %}
+
+{% crispy form %}
+{% block content %}
+<div class="max-w-2xl mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-6">Submit a Complaint</h1>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Your Name</label>
+            {{ form.customer_name }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Email or Phone</label>
+            {{ form.contact }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Category</label>
+            {{ form.category }}
+        </div>
+        <div id="dynamic-fields">
+            <!-- Dynamic fields loaded via HTMX -->
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Description</label>
+            {{ form.description }}
+        </div>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
+    </form>
+</div>
+{% endblock %}
