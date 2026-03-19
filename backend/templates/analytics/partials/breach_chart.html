@@ -1,0 +1,18 @@
+<div id="breach-chart-container" class="bg-white p-4 rounded shadow">
+  <canvas id="breachChart"></canvas>
+  <script>
+        (function() {
+            const ctx = document.getElementById('breachChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: {{ labels|safe }},
+                    datasets: [
+                        { label: 'Response Breaches', data: {{ response_data|safe }}, backgroundColor: 'orange' },
+                        { label: 'Resolution Breaches', data: {{ resolution_data|safe }}, backgroundColor: 'red' }
+                    ]
+                }
+            });
+        })();
+    </script>
+</div>

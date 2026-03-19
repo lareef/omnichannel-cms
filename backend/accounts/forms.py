@@ -31,22 +31,22 @@ class CustomSignupForm(SignupForm):
             Submit('submit', 'Sign Up', css_class='bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700')
         )
     
-    def save(self, request):
-        # Create the user using the parent method
-        user = super().save(request)
-        # Mark as inactive
-        user.is_active = False
-        user.save(update_fields=['is_active'])
-        # Optional: Send notification to admins here
-        # e.g., send_mail(...) or create a Notification object
-        # Notify admins
-        notify_admins(
-            subject="New user registration pending approval",
-            message=f"User {user.username} ({user.email}) has signed up and requires activation & role assignment.",
-            related_object=user,
-            send_email=True
-        )
-        return user
+    # def save(self, request):
+    #     # Create the user using the parent method
+    #     user = super().save(request)
+    #     # Mark as inactive
+    #     user.is_active = False
+    #     user.save(update_fields=['is_active'])
+    #     # Optional: Send notification to admins here
+    #     # e.g., send_mail(...) or create a Notification object
+    #     # Notify admins
+    #     notify_admins(
+    #         subject="New user registration pending approval",
+    #         message=f"User {user.username} ({user.email}) has signed up and requires activation & role assignment.",
+    #         related_object=user,
+    #         send_email=True
+    #     )
+    #     return user
 
 class CustomChangePasswordForm(ChangePasswordForm):
     def __init__(self, *args, **kwargs):

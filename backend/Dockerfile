@@ -22,5 +22,7 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY . .
 
 # Create a non-root user (optional)
-RUN adduser --disabled-password --gecos '' appuser
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} appuser && useradd -m -u ${UID} -g appuser appuser
 USER appuser

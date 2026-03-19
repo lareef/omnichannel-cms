@@ -28,6 +28,7 @@ urlpatterns = [
     path('dashboard/', include('tickets.urls')), # agent dashboard
     path('utilities/', include('utilities.urls')), # utility functions
     path('products/', include('products.urls')),
+    path('analytics/', include('analytics.urls')),
     # ... other apps
 ]
 

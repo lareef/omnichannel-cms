@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+  SLA Dashboard
+{% endblock %}
+
+{% block extra_head %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+  <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <h1 class="text-2xl font-bold mb-6">SLA Performance Dashboard</h1>
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" id="kpi-cards">
+      <!-- populated by JavaScript -->
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white p-4 rounded shadow">
+        <canvas id="ticketTrendChart"></canvas>
+      </div>
+      <div class="bg-white p-4 rounded shadow">
+        <canvas id="breachChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadMetrics() {
+      const response = await fetch('{% url "analytics:sla_metrics" %}')
+      const data = await response.json()
+      const kpiHtml = `
+                <div class="bg-white p-4 rounded shadow">
+                    <p class="text-sm text-gray-500">Total Tickets (7d)</p>
+                    <p class="text-2xl font-bold">${data.total_tickets}</p>
+                </div>
+                <div class="bg-white p-4 rounded shadow">
+                    <p class="text-sm text-gray-500">Open Tickets</p>
+                    <p class="text-2xl font-bold">${data.open_tickets}</p>
+                </div>
+                <div class="bg-white p-4 rounded shadow">
+                    <p class="text-sm text-gray-500">Avg Response (h)</p>
+                    <p class="text-2xl font-bold">${data.avg_response_hours || '—'}</p>
+                </div>
+                <div class="bg-white p-4 rounded shadow">
+                    <p class="text-sm text-gray-500">Response Breaches</p>
+                    <p class="text-2xl font-bold">${data.response_breaches}</p>
+                </div>
+            `
+      document.getElementById('kpi-cards').innerHTML = kpiHtml
+    }
+    
+    async function loadChartData() {
+      const response = await fetch('{% url "analytics:sla_chart_data" %}')
+      const data = await response.json()
+      const dates = data.map((d) => d.date)
+      const opened = data.map((d) => d.opened)
+      const resolved = data.map((d) => d.resolved)
+      const responseBreach = data.map((d) => d.response_breach)
+      const resolutionBreach = data.map((d) => d.resolution_breach)
+    
+      new Chart(document.getElementById('ticketTrendChart'), {
+        type: 'line',
+        data: {
+          labels: dates,
+          datasets: [
+            { label: 'Opened', data: opened, borderColor: 'blue', fill: false },
+            { label: 'Resolved', data: resolved, borderColor: 'green', fill: false }
+          ]
+        }
+      })
+    
+      new Chart(document.getElementById('breachChart'), {
+        type: 'bar',
+        data: {
+          labels: dates,
+          datasets: [
+            { label: 'Response Breach', data: responseBreach, backgroundColor: 'orange' },
+            { label: 'Resolution Breach', data: resolutionBreach, backgroundColor: 'red' }
+          ]
+        }
+      })
+    }
+    
+    loadMetrics()
+    loadChartData()
+  </script>
+{% endblock %}

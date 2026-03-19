@@ -1,0 +1,18 @@
+<div id="trend-chart-container" class="bg-white p-4 rounded shadow">
+    <canvas id="trendChart"></canvas>
+    <script>
+        (function() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: {{ labels|safe }},
+                    datasets: [
+                        { label: 'Opened', data: {{ opened_data|safe }}, borderColor: 'blue', fill: false },
+                        { label: 'Resolved', data: {{ resolved_data|safe }}, borderColor: 'green', fill: false }
+                    ]
+                }
+            });
+        })();
+    </script>
+</div>

@@ -91,7 +91,7 @@
                             <a href="{% url 'accounts:pending_users' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">Pending Approvals</a>
                         </li>
                         <li>
-                            <a href="{% url 'products:list' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">Manage Products</a>
+                            <a href="{% url 'products:product_list' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">Manage Products</a>
                         </li>
                         {% endif %}
 
@@ -104,6 +104,9 @@
                         </li>
                         <li>
                             <a href="{% url 'products:product_list' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">Manage Products</a>
+                        </li>
+                         <li>
+                            <a href="{% url 'analytics:sla_dashboard' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">SLA Dashboard</a>
                         </li>
                         {% endif %}
 

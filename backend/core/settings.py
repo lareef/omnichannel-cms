@@ -120,6 +120,8 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@localhost')
 # DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 # You can leave EMAIL_HOST_USER and EMAIL_HOST_PASSWORD blank for MailHog
 
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 ACCOUNT_FORMS = {
     'login': 'accounts.forms.CustomLoginForm',
     'signup': 'accounts.forms.CustomSignupForm',
@@ -169,41 +171,6 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 # Django Debug Toolbar (local only)
 INTERNAL_IPS = ['127.0.0.1']
 
-# DJANGO_TABLES2_TABLE_ATTRS = {
-#     "class": "min-w-full divide-y divide-gray-200 shadow overflow-hidden sm:rounded-lg",
-#     "thead": {
-#         "class": "bg-gray-100",
-#     },
-#     "th": {
-#         "class": "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
-#     },
-#     "td": {
-#         "class": "px-6 py-4 whitespace-nowrap text-sm text-gray-900",
-#     },
-#     "tr": {
-#         "class": "bg-white hover:bg-gray-50",
-#     },
-# }
-
-# DJANGO_TABLES2_TABLE_ATTRS = {
-#     "class": "bg-white shadow divide-y divide-gray-200 overflow-hidden sm:rounded-lg",
-#     "thead": {
-#         "class": "bg-gray-50",
-#     },
-#     "tbody": {
-#         "class": "bg-white divide-y divide-gray-200",
-#     },
-#     "th": {
-#         "class": "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
-#     },
-#     "td": {
-#         "class": "px-6 py-4 whitespace-nowrap text-sm text-gray-900",
-#     },
-#     "tr": {
-#         "class": "bg-white hover:bg-gray-500",
-#     },
-# }
-
 DJANGO_TABLES2_TABLE_ATTRS = {
     "class": "min-w-full bg-white shadow divide-y divide-gray-200 overflow-hidden sm:rounded-lg",
     "thead": {
@@ -251,3 +218,4 @@ LOGIN_REDIRECT_URL = '/dashboard/'         # after login
 LOGIN_URL = '/accounts/login/'
 ACCOUNT_LOGIN_METHODS = {'username', 'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+ACCOUNT_ADAPTER = 'accounts.adapters.CeleryAccountAdapter'

@@ -1,0 +1,12 @@
+Hello from {{ site_name }}!
+
+You're receiving this email because you (or someone pretending to be you) signed up for an account.
+
+Please click the link below to confirm your email address:
+
+{{ activate_url }}
+
+If you did not sign up, please ignore this email.
+
+Thanks,
+The {{ site_name }} Team

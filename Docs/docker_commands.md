@@ -86,3 +86,6 @@ list the first() object
 >>> print('\n'.join(f"{k}: {v}" for k, v in Ticket.objects.first().__dict__.items() if not k.startswith('_')))
 
 
+docker-compose exec -u root web python manage.py makemigrations
+
+

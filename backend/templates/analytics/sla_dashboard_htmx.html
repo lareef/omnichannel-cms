@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SLA Dashboard{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <h1 class="text-2xl font-bold mb-6">SLA Performance Dashboard</h1>
+
+    <!-- KPI Cards (loaded via HTMX) -->
+    <div id="kpi-cards" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
+         hx-get="{% url 'analytics:sla_metrics_partial' %}"
+         hx-trigger="load"
+         hx-target="#kpi-cards"
+         hx-swap="outerHTML">
+        <!-- initial placeholder (optional) -->
+        <div class="col-span-4 text-center py-4">Loading KPIs...</div>
+    </div>
+
+    <!-- Charts (loaded via HTMX) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div id="trend-chart-container" class="bg-white p-4 rounded shadow"
+             hx-get="{% url 'analytics:trend_chart_partial' %}"
+             hx-trigger="load"
+             hx-target="#trend-chart-container"
+             hx-swap="outerHTML">
+            <div class="text-center py-4">Loading chart...</div>
+        </div>
+        <div id="breach-chart-container" class="bg-white p-4 rounded shadow"
+             hx-get="{% url 'analytics:breach_chart_partial' %}"
+             hx-trigger="load"
+             hx-target="#breach-chart-container"
+             hx-swap="outerHTML">
+            <div class="text-center py-4">Loading chart...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

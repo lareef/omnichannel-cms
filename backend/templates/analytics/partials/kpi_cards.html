@@ -1,0 +1,18 @@
+<div id="kpi-cards" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white p-4 rounded shadow">
+        <p class="text-sm text-gray-500">Total Tickets (7d)</p>
+        <p class="text-2xl font-bold">{{ total }}</p>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+        <p class="text-sm text-gray-500">Open Tickets</p>
+        <p class="text-2xl font-bold">{{ open_tickets }}</p>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+        <p class="text-sm text-gray-500">Avg Response (h)</p>
+        <p class="text-2xl font-bold">{{ avg_response|default:'—' }}</p>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+        <p class="text-sm text-gray-500">Response Breaches</p>
+        <p class="text-2xl font-bold">{{ response_breaches }}</p>
+    </div>
+</div>

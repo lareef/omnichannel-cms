@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Q
-from .models import Ticket, TicketUpdate, Message, MessageAttachment
+from .models import Ticket, TicketUpdate, Message, MessageAttachment, TicketEscalation
 from .forms import TicketFilterForm, TicketUpdateForm, MessageForm
 from django.http import HttpResponseForbidden, HttpResponse
 from accounts.decorators import role_required
@@ -322,6 +322,13 @@ def update_list_partial(request, pk):
     updates = ticket.updates.select_related('updated_by').order_by('-created_at')[:20]
     html = render_to_string('tickets/partials/update_list.html', {'updates': updates}, request=request)
     return HttpResponse(html)
+
+class EscalationListView(SupervisorRequiredMixin, ListView):
+    model = TicketEscalation
+    template_name = 'tickets/escalation_list.html'
+    context_object_name = 'escalations'
+    paginate_by = 50
+    ordering = ['-escalated_at']
 
 # @login_required
 # @role_required(['agent', 'supervisor', 'admin'])
