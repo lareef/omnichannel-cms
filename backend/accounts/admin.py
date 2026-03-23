@@ -7,6 +7,14 @@ admin.site.register(Role)
 admin.site.register(Department)
 #admin.site.register(User)
 admin.site.register(UserPreference)
+
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description')
+    search_fields = ('name',)
+
+class RoleAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code')
+    search_fields = ('name', 'code')
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_active', 'role', 'email_verified')
     list_filter = ('is_active', 'role', 'groups')

@@ -124,20 +124,47 @@ class EscalationPolicy(models.Model):
     trigger_event = models.CharField(max_length=30, choices=TRIGGER_EVENT_CHOICES)
     threshold_minutes = models.PositiveIntegerField(null=True, blank=True,
                                                     help_text="Used with time‑based triggers")
-    escalate_to_role = models.ForeignKey('accounts.Role', on_delete=models.PROTECT, null=True, blank=True)
-    escalate_to_user = models.ForeignKey('accounts.User', on_delete=models.PROTECT, null=True, blank=True)
-    level = models.PositiveSmallIntegerField(default=1, help_text="Escalation level")
+    level = models.PositiveSmallIntegerField(default=1, help_text="Escalation level (1=first, 2=second, etc.)")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['level']
+        ordering = ['level', 'name']
+        verbose_name_plural = "Escalation Policies"
     
-    def should_escalate(self, ticket):
-        # Logic based on trigger_event, threshold_minutes, etc.
-        # You'll need to implement based on your requirements.
-        pass
-
+    def get_target_for_level(self):
+        """Get the escalation target for this policy level."""
+        # Look for the first EscalationTarget linked to this policy
+        target = self.targets.first()
+        return target
+    
     def __str__(self):
         return f"{self.name} (Level {self.level})"
+
+
+class EscalationTarget(models.Model):
+    """Defines who to escalate to for a specific policy level."""
+    policy = models.ForeignKey(EscalationPolicy, on_delete=models.CASCADE, related_name='targets')
+    escalate_to_role = models.ForeignKey('accounts.Role', on_delete=models.PROTECT, null=True, blank=True)
+    escalate_to_user = models.ForeignKey('accounts.User', on_delete=models.PROTECT, null=True, blank=True)
+    escalate_to_department = models.ForeignKey('accounts.Department', on_delete=models.PROTECT, null=True, blank=True)
+    notification_template = models.CharField(max_length=100, blank=True, 
+                                             help_text="Optional template name for notifications")
+    order = models.PositiveSmallIntegerField(default=0, help_text="Order within same policy level (if multiple targets)")
+    
+    class Meta:
+        ordering = ['policy__level', 'order']
+        unique_together = [['policy', 'order']]
+    
+    def __str__(self):
+        if self.escalate_to_user:
+            return f"Target: {self.escalate_to_user.get_full_name()}"
+        elif self.escalate_to_role:
+            return f"Target: {self.escalate_to_role.name} role"
+        elif self.escalate_to_department:
+            return f"Target: {self.escalate_to_department.name} department"
+        return f"Target #{self.order}"
 
 
 # -------------------- Core Ticket --------------------

@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}
+  Escalation Targets for {{ policy.name }} - OmniChannel CMS
+{% endblock %}
+
+{% block content %}
+  <div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Escalation Targets</h1>
+        <div class="flex items-center mt-2">
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mr-3">Level {{ policy.level }}</span>
+          <p class="text-gray-600">{{ policy.name }}</p>
+        </div>
+      </div>
+      <div class="mt-4 sm:mt-0">
+        <a href="{% url 'tickets:escalation_target_create' policy_id=policy.id %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"><i class="fas fa-plus mr-2"></i>Add Target</a>
+        <a href="{% url 'tickets:escalation_policy_list' %}" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"><i class="fas fa-arrow-left mr-2"></i>Back to Policies</a>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="mb-6 rounded-md p-4 {% if message.tags == 'success' %}
+            bg-green-50 border border-green-200
+          {% elif message.tags == 'error' %}
+            bg-red-50 border border-red-200
+          {% elif message.tags == 'warning' %}
+            bg-yellow-50 border border-yellow-200
+          {% else %}
+            bg-blue-50 border border-blue-200
+          {% endif %}">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              {% if message.tags == 'success' %}
+                <i class="fas fa-check-circle text-green-400"></i>
+              {% elif message.tags == 'error' %}
+                <i class="fas fa-exclamation-circle text-red-400"></i>
+              {% elif message.tags == 'warning' %}
+                <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+              {% else %}
+                <i class="fas fa-info-circle text-blue-400"></i>
+              {% endif %}
+            </div>
+            <div class="ml-3">
+              <p class="text-sm font-medium {% if message.tags == 'success' %}
+                  text-green-800
+                {% elif message.tags == 'error' %}
+                  text-red-800
+                {% elif message.tags == 'warning' %}
+                  text-yellow-800
+                {% else %}
+                  text-blue-800
+                {% endif %}">{{ message }}</p>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Policy Info Card -->
+    <div class="mb-8 bg-white shadow-lg rounded-lg overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Policy Information</h3>
+      </div>
+      <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <h4 class="text-sm font-medium text-gray-500">Trigger Event</h4>
+            <p class="mt-1 text-sm text-gray-900">{{ policy.get_trigger_event_display }}</p>
+            {% if policy.threshold_minutes %}
+              <p class="mt-1 text-sm text-gray-600">{{ policy.threshold_minutes }} minutes</p>
+            {% endif %}
+          </div>
+          <div>
+            <h4 class="text-sm font-medium text-gray-500">SLA Rule</h4>
+            <p class="mt-1 text-sm text-gray-900">
+              {% if policy.sla_rule %}
+                {{ policy.sla_rule.policy_name }}
+              {% else %}
+                All SLA Rules
+              {% endif %}
+            </p>
+          </div>
+          <div>
+            <h4 class="text-sm font-medium text-gray-500">Status</h4>
+            <p class="mt-1">
+              {% if policy.is_active %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check-circle mr-1"></i> Active</span>
+              {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"><i class="fas fa-pause-circle mr-1"></i> Inactive</span>
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Targets Table -->
+    <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+      {% if targets %}
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target Type</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target Details</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notification</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              {% for target in targets %}
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-800 font-semibold">{{ target.order }}</span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    {% if target.escalate_to_user %}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><i class="fas fa-user mr-1"></i> Specific User</span>
+                    {% elif target.escalate_to_role %}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"><i class="fas fa-users mr-1"></i> Role</span>
+                    {% elif target.escalate_to_department %}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-building mr-1"></i> Department</span>
+                    {% endif %}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    {% if target.escalate_to_user %}
+                      <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-10">
+                          <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                            <i class="fas fa-user text-gray-500"></i>
+                          </div>
+                        </div>
+                        <div class="ml-4">
+                          <div class="text-sm font-medium text-gray-900">{{ target.escalate_to_user.get_full_name|default:target.escalate_to_user.username }}</div>
+                          <div class="text-sm text-gray-500">{{ target.escalate_to_user.email }}</div>
+                        </div>
+                      </div>
+                    {% elif target.escalate_to_role %}
+                      <div class="text-sm font-medium text-gray-900">{{ target.escalate_to_role.name }}</div>
+                      <div class="text-sm text-gray-500">{{ target.escalate_to_role.code }}</div>
+                    {% elif target.escalate_to_department %}
+                      <div class="text-sm font-medium text-gray-900">{{ target.escalate_to_department.name }}</div>
+                      <div class="text-sm text-gray-500">{{ target.escalate_to_department.code }}</div>
+                    {% endif %}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    {% if target.notification_template %}
+                      <span class="text-sm text-gray-900">{{ target.notification_template }}</span>
+                    {% else %}
+                      <span class="text-sm text-gray-500">Default notification</span>
+                    {% endif %}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex space-x-2">
+                      <a href="{% url 'tickets:escalation_target_edit' pk=target.id %}" class="text-gray-600 hover:text-gray-900" title="Edit"><i class="fas fa-edit"></i></a>
+                      <a href="{% url 'tickets:escalation_target_delete' pk=target.id %}" class="text-red-600 hover:text-red-900" title="Delete"><i class="fas fa-trash"></i></a>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-12">
+          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100">
+            <i class="fas fa-users text-gray-400 text-xl"></i>
+          </div>
+          <h3 class="mt-4 text-lg font-medium text-gray-900">No escalation targets</h3>
+          <p class="mt-2 text-sm text-gray-500">Add targets to define who gets notified when this escalation level triggers.</p>
+          <div class="mt-6">
+            <a href="{% url 'tickets:escalation_target_create' policy_id=policy.id %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"><i class="fas fa-plus mr-2"></i>Add First Target</a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Information Section -->
+    <div class="mt-8 bg-white shadow-lg rounded-lg overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">How Escalation Targets Work</h3>
+      </div>
+      <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="p-4 border border-gray-200 rounded-lg">
+            <div class="flex items-center mb-3">
+              <div class="flex-shrink-0">
+                <i class="fas fa-user text-blue-500"></i>
+              </div>
+              <div class="ml-3">
+                <h4 class="text-sm font-medium text-gray-900">Specific User</h4>
+              </div>
+            </div>
+            <p class="text-sm text-gray-600">Escalate to a specific person (e.g., supervisor, manager)</p>
+          </div>
+
+          <div class="p-4 border border-gray-200 rounded-lg">
+            <div class="flex items-center mb-3">
+              <div class="flex-shrink-0">
+                <i class="fas fa-users text-purple-500"></i>
+              </div>
+              <div class="ml-3">
+                <h4 class="text-sm font-medium text-gray-900">Role-Based</h4>
+              </div>
+            </div>
+            <p class="text-sm text-gray-600">Escalate to all users with a specific role (e.g., all supervisors)</p>
+          </div>
+
+          <div class="p-4 border border-gray-200 rounded-lg">
+            <div class="flex items-center mb-3">
+              <div class="flex-shrink-0">
+                <i class="fas fa-building text-green-500"></i>
+              </div>
+              <div class="ml-3">
+                <h4 class="text-sm font-medium text-gray-900">Department</h4>
+              </div>
+            </div>
+            <p class="text-sm text-gray-600">Escalate to an entire department (e.g., customer service department)</p>
+          </div>
+        </div>
+
+        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h4 class="text-sm font-medium text-blue-800 mb-2">Target Order Matters</h4>
+          <p class="text-sm text-blue-700">Targets are processed in order (1, 2, 3, etc.). You can create multiple targets for the same policy level. For example: first notify the supervisor, then the department head, then management.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

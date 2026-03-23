@@ -210,9 +210,9 @@ def submit_complaint(request):
 
             # 2. Create the actual Ticket
             #    You need to define default status, priority, channel, etc.
-            default_status = TicketStatus.objects.get(code='OPEN')  # adjust code as needed
+            default_status = TicketStatus.objects.get(code='open')  # adjust code as needed
             default_priority = TicketPriority.objects.get(level=3)  # e.g., 'Medium'
-            web_channel = TicketChannel.objects.get(code='WEB')    # ensure this exists
+            web_channel = TicketChannel.objects.get(code='web')    # ensure this exists
 
             ticket = Ticket.objects.create(
                 ticket_number=generate_ticket_number(),  # implement this function

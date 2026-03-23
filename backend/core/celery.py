@@ -13,4 +13,9 @@ app.conf.beat_schedule = {
         'task': 'tickets.tasks.check_escalations',
         'schedule': crontab(minute='*/5'),
     },
+
+    'refresh-ticket-metrics-hourly': {
+        'task': 'analytics.tasks.refresh_ticket_metrics',
+        'schedule': crontab(minute=0),  # every hour at minute 0
+    },
 }

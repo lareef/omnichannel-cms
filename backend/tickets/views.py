@@ -1,12 +1,13 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Q
-from .models import Ticket, TicketUpdate, Message, MessageAttachment, TicketEscalation
+from django.urls import reverse
+from .models import Ticket, TicketUpdate, Message, MessageAttachment, TicketEscalation, EscalationPolicy, EscalationTarget
 from .forms import TicketFilterForm, TicketUpdateForm, MessageForm
 from django.http import HttpResponseForbidden, HttpResponse
 from accounts.decorators import role_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.views.generic import ListView, DetailView, View
+from django.views.generic import ListView, DetailView, View, CreateView, UpdateView, DeleteView
 from django.contrib import messages
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -329,6 +330,121 @@ class EscalationListView(SupervisorRequiredMixin, ListView):
     context_object_name = 'escalations'
     paginate_by = 50
     ordering = ['-escalated_at']
+
+
+# ----- Escalation Policy Management Views (for supervisors/admins) -----
+
+class EscalationPolicyListView(SupervisorRequiredMixin, ListView):
+    """List all escalation policies."""
+    model = EscalationPolicy
+    template_name = 'tickets/escalation_policy_list.html'
+    context_object_name = 'policies'
+    ordering = ['level', 'name']
+    
+    def get_queryset(self):
+        return super().get_queryset().select_related('sla_rule', 'sla_rule__priority', 'sla_rule__department')
+
+
+class EscalationPolicyCreateView(SupervisorRequiredMixin, CreateView):
+    """Create a new escalation policy."""
+    model = EscalationPolicy
+    template_name = 'tickets/escalation_policy_form.html'
+    fields = ['name', 'sla_rule', 'trigger_event', 'threshold_minutes', 'level', 'is_active']
+    
+    def get_success_url(self):
+        return reverse('tickets:escalation_policy_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Escalation policy created successfully.')
+        return super().form_valid(form)
+
+
+class EscalationPolicyUpdateView(SupervisorRequiredMixin, UpdateView):
+    """Edit an existing escalation policy."""
+    model = EscalationPolicy
+    template_name = 'tickets/escalation_policy_form.html'
+    fields = ['name', 'sla_rule', 'trigger_event', 'threshold_minutes', 'level', 'is_active']
+    
+    def get_success_url(self):
+        return reverse('tickets:escalation_policy_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Escalation policy updated successfully.')
+        return super().form_valid(form)
+
+
+class EscalationPolicyDeleteView(SupervisorRequiredMixin, DeleteView):
+    """Delete an escalation policy."""
+    model = EscalationPolicy
+    template_name = 'tickets/escalation_policy_confirm_delete.html'
+    
+    def get_success_url(self):
+        return reverse('tickets:escalation_policy_list')
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Escalation policy deleted successfully.')
+        return super().delete(request, *args, **kwargs)
+
+
+class EscalationTargetListView(SupervisorRequiredMixin, ListView):
+    """List targets for a specific policy."""
+    model = EscalationTarget
+    template_name = 'tickets/escalation_target_list.html'
+    context_object_name = 'targets'
+    
+    def get_queryset(self):
+        policy_id = self.kwargs['pk']
+        return EscalationTarget.objects.filter(policy_id=policy_id).select_related(
+            'escalate_to_user', 'escalate_to_role', 'escalate_to_department'
+        ).order_by('order')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['policy'] = get_object_or_404(EscalationPolicy, pk=self.kwargs['pk'])
+        return context
+
+
+class EscalationTargetCreateView(SupervisorRequiredMixin, CreateView):
+    """Create a new target for a policy."""
+    model = EscalationTarget
+    template_name = 'tickets/escalation_target_form.html'
+    fields = ['order', 'escalate_to_user', 'escalate_to_role', 'escalate_to_department', 'notification_template']
+    
+    def form_valid(self, form):
+        policy_id = self.kwargs['policy_id']
+        form.instance.policy = get_object_or_404(EscalationPolicy, pk=policy_id)
+        messages.success(self.request, 'Escalation target added successfully.')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse('tickets:escalation_target_list', kwargs={'pk': self.kwargs['policy_id']})
+
+
+class EscalationTargetUpdateView(SupervisorRequiredMixin, UpdateView):
+    """Edit an existing escalation target."""
+    model = EscalationTarget
+    template_name = 'tickets/escalation_target_form.html'
+    fields = ['order', 'escalate_to_user', 'escalate_to_role', 'escalate_to_department', 'notification_template']
+    
+    def get_success_url(self):
+        return reverse('tickets:escalation_target_list', kwargs={'pk': self.object.policy_id})
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Escalation target updated successfully.')
+        return super().form_valid(form)
+
+
+class EscalationTargetDeleteView(SupervisorRequiredMixin, DeleteView):
+    """Delete an escalation target."""
+    model = EscalationTarget
+    template_name = 'tickets/escalation_target_confirm_delete.html'
+    
+    def get_success_url(self):
+        return reverse('tickets:escalation_target_list', kwargs={'pk': self.object.policy_id})
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Escalation target deleted successfully.')
+        return super().delete(request, *args, **kwargs)
 
 # @login_required
 # @role_required(['agent', 'supervisor', 'admin'])
