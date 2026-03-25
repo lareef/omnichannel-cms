@@ -1,9 +1,13 @@
+import logging
 from celery import shared_task
 from django.utils import timezone
 from django.db.models import Q
 from .models import Ticket, EscalationPolicy, EscalationTarget, TicketEscalation
 from notifications.utils import send_notification, notify_admins
 from accounts.models import User, Role, Department
+
+logger = logging.getLogger(__name__)
+
 
 @shared_task
 def check_sla_breaches():
@@ -104,19 +108,107 @@ def check_escalation_for_ticket(ticket_id):
                     
                     print(f"Escalated ticket {ticket.ticket_number} to level {policy.level}")
 
+# @shared_task
+# def check_escalations():
+#     """Periodic task to evaluate all active tickets for escalations."""
+#     now = timezone.now()
+
+#     # Get all active tickets (not resolved, not archived)
+#     tickets = Ticket.objects.filter(
+#         resolved_at__isnull=True,
+#         is_archived=False
+#     ).select_related('priority', 'department', 'assigned_to')
+
+#     # Get all active escalation policies
+#     policies = EscalationPolicy.objects.filter(is_active=True)
+
+#     for ticket in tickets:
+#         check_escalation_for_ticket.delay(ticket.id)
+
 @shared_task
 def check_escalations():
-    """Periodic task to evaluate all active tickets for escalations."""
+    """
+    Periodic task: evaluate all active tickets against escalation policies.
+    """
     now = timezone.now()
-
+    print("Checking for Escalations... @ ", now )
     # Get all active tickets (not resolved, not archived)
     tickets = Ticket.objects.filter(
         resolved_at__isnull=True,
         is_archived=False
     ).select_related('priority', 'department', 'assigned_to')
 
+    # Get all active escalation policies
+    policies = EscalationPolicy.objects.filter(is_active=True)
+
     for ticket in tickets:
-        check_escalation_for_ticket.delay(ticket.id)
+        # For each ticket, find applicable policies (could be filtered by priority/department etc.)
+        # In a more advanced version, you might filter policies by SLA rule, but for now we take all.
+        for policy in policies:
+            # Skip if already escalated at this level and not resolved
+            if TicketEscalation.objects.filter(
+                ticket=ticket,
+                level=policy.level,
+                is_resolved=False
+            ).exists():
+                continue
+
+            if should_escalate(ticket, policy, now):
+                # Determine escalation target
+                target_user = None
+                if policy.escalate_to_user:
+                    target_user = policy.escalate_to_user
+                elif policy.escalate_to_role:
+                    # Get any user with that role? In a real system, you might need logic to pick.
+                    # For simplicity, we'll pick the first active user with that role in the same department.
+                    users = ticket.department.user_set.filter(
+                        role=policy.escalate_to_role,
+                        is_active=True
+                    )
+                    if users.exists():
+                        target_user = users.first()
+                # If no target, fallback to admins (or skip)
+                if not target_user:
+                    # Notify all admins
+                    target_user = None  # we'll handle this in notification
+                # Create escalation record
+                escalation = TicketEscalation.objects.create(
+                    ticket=ticket,
+                    escalated_to=target_user,
+                    reason=f"Escalation policy: {policy.name} (Level {policy.level})",
+                    level=policy.level,
+                    escalated_at=now
+                )
+                # Update ticket escalation level
+                if not ticket.is_escalated or ticket.escalation_level < policy.level:
+                    ticket.is_escalated = True
+                    ticket.escalation_level = policy.level
+                    ticket.save(update_fields=['is_escalated', 'escalation_level'])
+
+                # Send notification
+                if target_user:
+                    # You could use notify_admins with role, but here we just send to specific user
+                    # For now, we'll reuse notify_admins with role=None, but we need a user-specific version.
+                    # Let's create a generic notification function (notify_user) in notifications/utils.
+                    from notifications.utils import notify_user
+                    notify_user(
+                        user=target_user,
+                        title=f"Ticket #{ticket.ticket_number} escalated (Level {policy.level})",
+                        message=f"Ticket '{ticket.subject}' requires attention.\nReason: {policy.name}",
+                        related_object=ticket,
+                        send_email=True
+                    )
+                else:
+                    # If no specific target, notify all admins
+                    notify_admins(
+                        subject=f"Ticket #{ticket.ticket_number} escalated (Level {policy.level})",
+                        message=f"Ticket '{ticket.subject}' requires attention.\nReason: {policy.name}",
+                        related_object=ticket,
+                        role='admin'  # only admins
+                    )
+
+                # Log (optional)
+                logger.info(f"Escalated ticket {ticket.ticket_number} to level {policy.level} by policy {policy.name}")
 
 def should_escalate(ticket, policy, now):
     """Determine if a ticket meets the escalation criteria for a policy."""

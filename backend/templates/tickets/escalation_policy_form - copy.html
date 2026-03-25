@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}
+  {% if object %}
+    Edit
+  {% else %}
+    Create
+  {% endif %}Escalation Policy - OmniChannel CMS
+{% endblock %}
+
+{% block content %}
+  <div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+      <!-- Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">
+          {% if object %}
+            <i class="fas fa-edit mr-2"></i>Edit Escalation Policy
+          {% else %}
+            <i class="fas fa-plus mr-2"></i>Create New Escalation Policy
+          {% endif %}
+        </h1>
+        <p class="text-gray-600 mt-2">Define escalation rules with multiple levels and different targets for each level.</p>
+      </div>
+
+      <!-- Form Card -->
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-xl font-semibold text-gray-800">Policy Details</h2>
+        </div>
+
+        <div class="p-6">
+          <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+              <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div class="flex">
+                  <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-circle text-red-400"></i>
+                  </div>
+                  <div class="ml-3">
+                    <h3 class="text-sm font-medium text-red-800">Please correct the errors below</h3>
+                    <div class="mt-2 text-sm text-red-700">
+                      {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Left Column -->
+              <div class="space-y-6">
+                <!-- Policy Name -->
+                <div>
+                  {{ form.name|as_crispy_field }}
+                  <p class="mt-1 text-sm text-gray-500">Descriptive name for this escalation policy</p>
+                </div>
+
+                <!-- Escalation Level -->
+                <div>
+                  {{ form.level|as_crispy_field }}
+                  <p class="mt-1 text-sm text-gray-500">Level 1 = first escalation, Level 2 = second, etc.</p>
+                </div>
+
+                <!-- Trigger Event -->
+                <div>{{ form.trigger_event|as_crispy_field }}</div>
+              </div>
+
+              <!-- Right Column -->
+              <div class="space-y-6">
+                <!-- Threshold Minutes -->
+                <div>
+                  {{ form.threshold_minutes|as_crispy_field }}
+                  <p class="mt-1 text-sm text-gray-500">Required for time-based triggers (in minutes)</p>
+                </div>
+
+                <!-- SLA Rule -->
+                <div>
+                  {{ form.sla_rule|as_crispy_field }}
+                  <p class="mt-1 text-sm text-gray-500">Link to specific SLA rule, or leave blank for all</p>
+                </div>
+
+                <!-- Active Status -->
+                <div class="pt-2">
+                  <div class="flex items-center">
+                    {{ form.is_active }}
+                    <label for="{{ form.is_active.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">Active Policy</label>
+                  </div>
+                  <p class="mt-1 text-sm text-gray-500">Inactive policies won't trigger escalations</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="mt-8 pt-6 border-t border-gray-200 flex justify-end space-x-3">
+              <a href="{% url 'tickets:escalation_policy_list' %}" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"><i class="fas fa-times mr-2"></i>Cancel</a>
+              <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                {% if object %}
+                  <i class="fas fa-save mr-2"></i>Update Policy
+                {% else %}
+                  <i class="fas fa-plus mr-2"></i>Create Policy
+                {% endif %}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Information Card -->
+      <div class="mt-8 bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-xl font-semibold text-gray-800">About Escalation Levels</h2>
+        </div>
+
+        <div class="p-6">
+          <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <i class="fas fa-info-circle text-blue-400"></i>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800">Multi-Level Escalation Strategy</h3>
+                <div class="mt-2 text-sm text-blue-700">
+                  <p>Create multiple policies with different levels to implement progressive escalation. After creating this policy, add escalation targets (users, roles, or departments) who will be notified when this level triggers.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Level 1 -->
+            <div class="border border-blue-300 rounded-lg overflow-hidden">
+              <div class="bg-blue-50 px-4 py-3 border-b border-blue-300">
+                <h3 class="text-lg font-semibold text-blue-800 text-center">Level 1</h3>
+              </div>
+              <div class="p-4 text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">First Escalation</div>
+                <p class="text-gray-600">e.g., to Supervisor</p>
+                <div class="mt-3">
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"><i class="fas fa-clock mr-1"></i> After 2 hours</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Level 2 -->
+            <div class="border border-yellow-300 rounded-lg overflow-hidden">
+              <div class="bg-yellow-50 px-4 py-3 border-b border-yellow-300">
+                <h3 class="text-lg font-semibold text-yellow-800 text-center">Level 2</h3>
+              </div>
+              <div class="p-4 text-center">
+                <div class="text-3xl font-bold text-yellow-600 mb-2">Second Escalation</div>
+                <p class="text-gray-600">e.g., to Department Head</p>
+                <div class="mt-3">
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800"><i class="fas fa-clock mr-1"></i> After 4 more hours</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Level 3 -->
+            <div class="border border-red-300 rounded-lg overflow-hidden">
+              <div class="bg-red-50 px-4 py-3 border-b border-red-300">
+                <h3 class="text-lg font-semibold text-red-800 text-center">Level 3</h3>
+              </div>
+              <div class="p-4 text-center">
+                <div class="text-3xl font-bold text-red-600 mb-2">Final Escalation</div>
+                <p class="text-gray-600">e.g., to Management</p>
+                <div class="mt-3">
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800"><i class="fas fa-clock mr-1"></i> After 8 more hours</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Trigger Events Info -->
+          <div class="mt-8">
+            <h4 class="text-lg font-medium text-gray-900 mb-4">Trigger Events Explained</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="p-4 border border-gray-200 rounded-lg">
+                <div class="flex items-center mb-2">
+                  <div class="flex-shrink-0">
+                    <i class="fas fa-clock text-blue-500"></i>
+                  </div>
+                  <div class="ml-3">
+                    <h5 class="text-sm font-medium text-gray-900">Time Since Creation</h5>
+                  </div>
+                </div>
+                <p class="text-sm text-gray-600">After fixed time from ticket creation</p>
+              </div>
+
+              <div class="p-4 border border-gray-200 rounded-lg">
+                <div class="flex items-center mb-2">
+                  <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+                  </div>
+                  <div class="ml-3">
+                    <h5 class="text-sm font-medium text-gray-900">SLA Breach</h5>
+                  </div>
+                </div>
+                <p class="text-sm text-gray-600">After response or resolution SLA is breached</p>
+              </div>
+
+              <div class="p-4 border border-gray-200 rounded-lg">
+                <div class="flex items-center mb-2">
+                  <div class="flex-shrink-0">
+                    <i class="fas fa-user-clock text-green-500"></i>
+                  </div>
+                  <div class="ml-3">
+                    <h5 class="text-sm font-medium text-gray-900">No Activity</h5>
+                  </div>
+                </div>
+                <p class="text-sm text-gray-600">After period of no updates on ticket</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

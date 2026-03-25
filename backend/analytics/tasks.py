@@ -23,6 +23,8 @@ def refresh_ticket_metrics(ticket_id=None):
     """
     Update TicketMetrics for a single ticket or for all tickets updated in the last hour.
     """
+    print("Updating TicketMetrics... @ ", timezone.now() )
+    
     if ticket_id:
         tickets = Ticket.objects.filter(id=ticket_id)
     else:

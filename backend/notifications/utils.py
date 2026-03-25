@@ -13,7 +13,7 @@ from django.utils import timezone
 
 User = get_user_model()
 
-def notify_admins(subject, message, related_object=None, send_email=True):
+def notify_admins(subject, message, related_object=None, send_email=True, role=None):
     """
     Send notification to all admin users (superusers and users with admin role).
     Creates in‑app notification and optionally sends email asynchronously.
@@ -24,6 +24,21 @@ def notify_admins(subject, message, related_object=None, send_email=True):
         related_object (Model instance, optional): Django model instance to link.
         send_email (bool): Whether to also send an email.
     """
+    if role is None:
+        # Default: superusers OR users with role 'admin'
+        query = Q(is_superuser=True) | Q(role__code='admin')
+    else:
+        if isinstance(role, str):
+            role_codes = [role]
+        else:
+            role_codes = role
+        query = Q(role__code__in=role_codes)
+        
+    users = User.objects.filter(query).distinct()
+
+    for user in users:
+        notify_user(user, subject, message, related_object, send_email)
+        
     # Get all admin users: superusers OR users with role code 'admin'
     admins = User.objects.filter(
         Q(is_superuser=True) | Q(role__code='admin')
@@ -118,6 +133,27 @@ def send_email_notification(recipient_id, subject, message, notification_id=None
                 status='failed',
                 error_message=str(e)
             )
+
+def notify_user(user, title, message, related_object=None, send_email=True):
+    """Send notification to a specific user."""
+    from .models import Notification
+    from .tasks import send_email_notification
+
+    notif = Notification.objects.create(
+        recipient=user,
+        type='in_app',
+        title=title,
+        content=message,
+        related_object=related_object,
+        status='pending'
+    )
+    if send_email and user.email:
+        send_email_notification.delay(
+            recipient_id=user.id,
+            subject=title,
+            message=message,
+            notification_id=notif.id
+        )
 def send_notification(user, title, message, related_object=None):
     # Store in DB
     notif = Notification.objects.create(

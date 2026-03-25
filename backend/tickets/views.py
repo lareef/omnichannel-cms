@@ -1,9 +1,9 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Q
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from .models import Ticket, TicketUpdate, Message, MessageAttachment, TicketEscalation, EscalationPolicy, EscalationTarget
-from .forms import TicketFilterForm, TicketUpdateForm, MessageForm
+from .forms import TicketFilterForm, TicketUpdateForm, MessageForm, EscalationPolicyForm
 from django.http import HttpResponseForbidden, HttpResponse
 from accounts.decorators import role_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -15,6 +15,8 @@ from notifications.utils import notify_ticket_update
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render
+from django.contrib.messages.views import SuccessMessageMixin
+
 
 # ----- Mixins for Role-Based Access -----
 # class AgentRequiredMixin(UserPassesTestMixin):
@@ -55,7 +57,7 @@ class SupervisorRequiredMixin(UserPassesTestMixin):
         return user.is_authenticated and user.role and user.role.code in ['supervisor', 'admin']
 
 # ----- Dashboard / Ticket List -----
-class DashboardView(LoginRequiredMixin, AgentRequiredMixin, ListView):
+class old_DashboardView(LoginRequiredMixin, AgentRequiredMixin, ListView):
     model = Ticket
     template_name = 'tickets/dashboard.html'
     context_object_name = 'tickets'
@@ -109,6 +111,65 @@ class DashboardView(LoginRequiredMixin, AgentRequiredMixin, ListView):
 
             context['filter_form'] = self.filter_form
             return context
+
+class DashboardView(LoginRequiredMixin, AgentRequiredMixin, ListView):
+    model = Ticket
+    template_name = 'tickets/dashboard.html'
+    context_object_name = 'tickets'
+    paginate_by = 20
+
+    def get_queryset(self):
+        # Base queryset with role filtering
+        base_queryset = Ticket.objects.select_related(
+            'status', 'priority', 'customer', 'assigned_to'
+        ).order_by('-created_at')
+
+        user = self.request.user
+        if user.role and user.role.code == 'agent':
+            base_queryset = base_queryset.filter(
+                Q(assigned_to=user) |
+                Q(assigned_to__isnull=True, department=user.department)
+            )
+
+        self.base_queryset = base_queryset   # store for stats
+
+        # Now apply custom card filters (optional)
+        queryset = base_queryset
+        if self.request.GET.get('open') == '1':
+            queryset = queryset.filter(status__is_closed_state=False)
+        if self.request.GET.get('overdue_response') == '1':
+            now = timezone.now()
+            queryset = queryset.filter(
+                response_due_at__lt=now,
+                first_response_at__isnull=True
+            )
+
+        # Apply filter form (assignment, status, priority, search)
+        self.filter_form = TicketFilterForm(self.request.GET, queryset=queryset)
+        self.filter_form.set_user(user)
+        if self.filter_form.is_valid():
+            queryset = self.filter_form.filter_queryset(queryset)
+
+        self.filtered_queryset = queryset
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        # Use the already filtered queryset for stats (self.filtered_queryset)
+        # base_queryset = self.filtered_queryset
+
+        context['open_tickets_count'] = self.base_queryset.filter(status__is_closed_state=False).count()
+        context['unassigned_count'] = self.base_queryset.filter(assigned_to__isnull=True).count()
+        context['overdue_response_count'] = self.base_queryset.filter(
+            response_due_at__lt=timezone.now(),
+            first_response_at__isnull=True
+        ).count()
+        context['my_tickets_count'] = self.base_queryset.filter(assigned_to=user).count()
+        context['filter_form'] = self.filter_form
+        return context
+
 # Simple ticket list view (same as dashboard but without the dashboard-specific UI)
 class TicketListView(DashboardView):
     template_name = 'tickets/partials/ticket_list.html'
@@ -335,55 +396,90 @@ class EscalationListView(SupervisorRequiredMixin, ListView):
 # ----- Escalation Policy Management Views (for supervisors/admins) -----
 
 class EscalationPolicyListView(SupervisorRequiredMixin, ListView):
-    """List all escalation policies."""
     model = EscalationPolicy
     template_name = 'tickets/escalation_policy_list.html'
     context_object_name = 'policies'
+    paginate_by = 20
     ordering = ['level', 'name']
-    
-    def get_queryset(self):
-        return super().get_queryset().select_related('sla_rule', 'sla_rule__priority', 'sla_rule__department')
 
 
-class EscalationPolicyCreateView(SupervisorRequiredMixin, CreateView):
-    """Create a new escalation policy."""
+class EscalationPolicyCreateView(SupervisorRequiredMixin, SuccessMessageMixin, CreateView):
     model = EscalationPolicy
+    form_class = EscalationPolicyForm
     template_name = 'tickets/escalation_policy_form.html'
-    fields = ['name', 'sla_rule', 'trigger_event', 'threshold_minutes', 'level', 'is_active']
-    
-    def get_success_url(self):
-        return reverse('tickets:escalation_policy_list')
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Escalation policy created successfully.')
-        return super().form_valid(form)
+    success_url = reverse_lazy('tickets:escalation_policy_list')
+    success_message = "Escalation policy '%(name)s' created successfully."
 
 
-class EscalationPolicyUpdateView(SupervisorRequiredMixin, UpdateView):
-    """Edit an existing escalation policy."""
+class EscalationPolicyUpdateView(SupervisorRequiredMixin, SuccessMessageMixin, UpdateView):
     model = EscalationPolicy
+    form_class = EscalationPolicyForm
     template_name = 'tickets/escalation_policy_form.html'
-    fields = ['name', 'sla_rule', 'trigger_event', 'threshold_minutes', 'level', 'is_active']
-    
-    def get_success_url(self):
-        return reverse('tickets:escalation_policy_list')
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Escalation policy updated successfully.')
-        return super().form_valid(form)
+    success_url = reverse_lazy('tickets:escalation_policy_list')
+    success_message = "Escalation policy '%(name)s' updated successfully."
 
 
 class EscalationPolicyDeleteView(SupervisorRequiredMixin, DeleteView):
-    """Delete an escalation policy."""
     model = EscalationPolicy
     template_name = 'tickets/escalation_policy_confirm_delete.html'
-    
-    def get_success_url(self):
-        return reverse('tickets:escalation_policy_list')
-    
+    success_url = reverse_lazy('tickets:escalation_policy_list')
+    success_message = "Escalation policy deleted."
+
     def delete(self, request, *args, **kwargs):
-        messages.success(request, 'Escalation policy deleted successfully.')
+        messages.success(self.request, self.success_message)
         return super().delete(request, *args, **kwargs)
+
+# class EscalationPolicyListView(SupervisorRequiredMixin, ListView):
+#     """List all escalation policies."""
+#     model = EscalationPolicy
+#     template_name = 'tickets/escalation_policy_list.html'
+#     context_object_name = 'policies'
+#     paginate_by = 20
+#     ordering = ['level', 'name']
+    
+#     def get_queryset(self):
+#         return super().get_queryset().select_related('sla_rule', 'sla_rule__priority', 'sla_rule__department')
+
+
+# class EscalationPolicyCreateView(SupervisorRequiredMixin, CreateView):
+#     """Create a new escalation policy."""
+#     model = EscalationPolicy
+#     template_name = 'tickets/escalation_policy_form.html'
+#     fields = ['name', 'sla_rule', 'trigger_event', 'threshold_minutes', 'level', 'is_active']
+    
+#     def get_success_url(self):
+#         return reverse('tickets:escalation_policy_list')
+    
+#     def form_valid(self, form):
+#         messages.success(self.request, 'Escalation policy created successfully.')
+#         return super().form_valid(form)
+
+
+# class EscalationPolicyUpdateView(SupervisorRequiredMixin, UpdateView):
+#     """Edit an existing escalation policy."""
+#     model = EscalationPolicy
+#     template_name = 'tickets/escalation_policy_form.html'
+#     fields = ['name', 'sla_rule', 'trigger_event', 'threshold_minutes', 'level', 'is_active']
+    
+#     def get_success_url(self):
+#         return reverse('tickets:escalation_policy_list')
+    
+#     def form_valid(self, form):
+#         messages.success(self.request, 'Escalation policy updated successfully.')
+#         return super().form_valid(form)
+
+
+# class EscalationPolicyDeleteView(SupervisorRequiredMixin, DeleteView):
+#     """Delete an escalation policy."""
+#     model = EscalationPolicy
+#     template_name = 'tickets/escalation_policy_confirm_delete.html'
+    
+#     def get_success_url(self):
+#         return reverse('tickets:escalation_policy_list')
+    
+#     def delete(self, request, *args, **kwargs):
+#         messages.success(request, 'Escalation policy deleted successfully.')
+#         return super().delete(request, *args, **kwargs)
 
 
 class EscalationTargetListView(SupervisorRequiredMixin, ListView):

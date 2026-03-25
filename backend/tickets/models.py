@@ -119,18 +119,22 @@ class EscalationPolicy(models.Model):
     ]
 
     name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
     sla_rule = models.ForeignKey(SlaRule, on_delete=models.CASCADE, null=True, blank=True,
                                  help_text="If linked to a specific SLA rule")
     trigger_event = models.CharField(max_length=30, choices=TRIGGER_EVENT_CHOICES)
     threshold_minutes = models.PositiveIntegerField(null=True, blank=True,
                                                     help_text="Used with time‑based triggers")
+    escalate_to_role = models.ForeignKey('accounts.Role', on_delete=models.PROTECT, null=True, blank=True)
+    escalate_to_user = models.ForeignKey('accounts.User', on_delete=models.PROTECT, null=True, blank=True,
+                                         related_name='escalation_policies')
     level = models.PositiveSmallIntegerField(default=1, help_text="Escalation level (1=first, 2=second, etc.)")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['level', 'name']
+        ordering = ['level', 'trigger_event']
         verbose_name_plural = "Escalation Policies"
     
     def get_target_for_level(self):
@@ -366,7 +370,7 @@ class TicketAttachment(models.Model):
 class TicketEscalation(models.Model):
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='escalations')
     escalated_at = models.DateTimeField(auto_now_add=True)
-    escalated_to = models.ForeignKey('accounts.User', on_delete=models.PROTECT, related_name='+')
+    escalated_to = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     reason = models.CharField(max_length=500)
     is_resolved = models.BooleanField(default=False)
     level = models.PositiveSmallIntegerField()

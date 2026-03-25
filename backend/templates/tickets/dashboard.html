@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Agent Dashboard{% endblock %}
+{% block title %}Ticket Dashboard{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
@@ -9,12 +9,15 @@
 
 <!-- Stats Cards -->
 <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-    <!-- Open Tickets -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
+ 
+         <!-- Open Tickets -->
+        <a href="?open=1" class="bg-white overflow-hidden shadow rounded-lg block hover:shadow-lg transition-shadow duration-200">
             <div class="p-5">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 bg-indigo-500 rounded-md p-3">
-                        <svg class="h-6 w-6 text-white"><use href="#heroicon-ticket"></use></svg>
+                        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
                     </div>
                     <div class="ml-5 w-0 flex-1">
                         <dl>
@@ -24,14 +27,16 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </a>
 
         <!-- Unassigned -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
+        <a href="?assignment=unassigned" class="bg-white overflow-hidden shadow rounded-lg block hover:shadow-lg transition-shadow duration-200">
             <div class="p-5">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
-                        <svg class="h-6 w-6 text-white"><use href="#heroicon-ticket-un"></use></svg>
+                        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
                     </div>
                     <div class="ml-5 w-0 flex-1">
                         <dl>
@@ -41,10 +46,10 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </a>
 
         <!-- Overdue Response -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
+        <a href="?overdue_response=1" class="bg-white overflow-hidden shadow rounded-lg block hover:shadow-lg transition-shadow duration-200">
             <div class="p-5">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 bg-red-500 rounded-md p-3">
@@ -60,10 +65,10 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </a>
 
         <!-- My Tickets -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
+        <a href="?assignment=assigned_to_me" class="bg-white overflow-hidden shadow rounded-lg block hover:shadow-lg transition-shadow duration-200">
             <div class="p-5">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
@@ -79,33 +84,22 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
-
-    <!-- Filter Form -->
-    <form method="get" class="bg-white p-4 rounded shadow mb-6" id="filter-form">
+    <!-- Inside the filter form block -->
+    <form method="get" class="bg-white p-4 rounded shadow mb-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Status</label>
-                {{ filter_form.status }}
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Priority</label>
-                {{ filter_form.priority }}
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Assignment</label>
-                {{ filter_form.assignment }}
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Search</label>
-                {{ filter_form.search }}
-            </div>
+        {% load crispy_forms_tags %}
+        {% crispy filter_form %}
         </div>
-        <div class="mt-4 flex justify-end">
-            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Apply Filters</button>
-            <a href="{% url 'tickets:dashboard' %}" class="ml-2 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">Clear</a>
+        <div class="mt-4 flex space-x-2">
+            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                Apply Filters
+            </button>
+            <a href="{% url 'tickets:dashboard' %}" class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">
+                Clear
+            </a>
         </div>
     </form>
 
