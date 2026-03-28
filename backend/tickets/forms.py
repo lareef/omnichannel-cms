@@ -31,45 +31,6 @@ class TicketFilterForm(forms.Form):
             Field('search', css_class='mt-1 block w-full rounded-md border-gray-300 shadow-sm'),
         )
 
-    # def __init__(self, *args, queryset=None, **kwargs):
-    #     super().__init__(*args, **kwargs)
-        
-    #     # Set choices dynamically to avoid database queries at import time
-    #     try:
-    #         status_choices = [('', 'All')] + list(Ticket.objects.values_list('status__id', 'status__name').distinct())
-    #         priority_choices = [('', 'All')] + list(Ticket.objects.values_list('priority__id', 'priority__name').distinct())
-            
-    #         self.fields['status'].choices = status_choices
-    #         self.fields['priority'].choices = priority_choices
-    #     except:
-    #         # Fallback if database is not ready (e.g., during migrations)
-    #         self.fields['status'].choices = [('', 'All')]
-    #         self.fields['priority'].choices = [('', 'All')]
-        
-    #     if queryset:
-    #         # Dynamically set choices based on queryset (optional)
-    #         pass
-
-    # def __init__(self, *args, **kwargs):
-    #     queryset = kwargs.pop('queryset', None)
-    #     super().__init__(*args, **kwargs)
-    #     if queryset:
-    #         # ✅ Correct: get unique statuses
-    #         status_choices = [('', 'All')] + list(
-    #             queryset.order_by('status__name')
-    #                 .values_list('status__id', 'status__name')
-    #                 .distinct()
-    #         )
-    #         self.fields['status'].choices = status_choices
-
-    #         priority_choices = [('', 'All')] + list(
-    #             queryset.order_by('priority__level')
-    #                 .values_list('priority__id', 'priority__name')
-    #                 .distinct()
-    #         )
-    #         self.fields['priority'].choices = priority_choices
-
-
     def filter_queryset(self, queryset):
         data = self.cleaned_data
         if data.get('status'):
