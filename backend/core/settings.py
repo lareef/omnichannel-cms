@@ -111,12 +111,53 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-EMAIL_HOST = env('EMAIL_HOST')
-EMAIL_PORT = env.int('EMAIL_PORT')
-EMAIL_HOST_USER = env('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
-EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@localhost')
+EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
+
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_HOST_USER = 'apikey' # this is exactly the value 'apikey'
+EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+
+
+# SendGrid API backend (recommended)
+# EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+# SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
+
+# Optional but recommended for development:
+# If DEBUG=True, emails are not actually sent (sandbox mode)
+# SENDGRID_SANDBOX_MODE_IN_DEBUG = True   # default is True
+
+# For production (DEBUG=False), ensure sandbox is off
+# if not DEBUG:
+#     SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+
+
+# EMAIL_HOST = env('EMAIL_HOST')
+# EMAIL_PORT = env.int('EMAIL_PORT')
+# EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+# EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+# EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS')
+# DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@localhost')
+# # SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
+# SENDGRID_API_KEY = env('SENDGRID_API_KEY', default='xsmtpsib-4e453d93628e7edb4d5cde8cc9a6f0a9fbf94c6d6ebd4bb28a8bc798fe6dae4e-Xz1ZZRN4GuC3ya3F')  # fallback for development
+# API_KEY = env('API_KEY', default='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')  # fallback for development
+
+# # SendGrid API backend (recommended)
+# EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+# # SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
+
+# # Optional but recommended for development:
+# # If DEBUG=True, emails are not actually sent (sandbox mode)
+# SENDGRID_SANDBOX_MODE_IN_DEBUG = True   # default is True
+
+# # For production (DEBUG=False), ensure sandbox is off
+# if not DEBUG:
+#     SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+
 # DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 # You can leave EMAIL_HOST_USER and EMAIL_HOST_PASSWORD blank for MailHog
 

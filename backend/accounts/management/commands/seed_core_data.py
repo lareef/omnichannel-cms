@@ -118,7 +118,7 @@ class Command(BaseCommand):
             ("WARRANTY", "Warranty & Claims"),
             ("BODY_PAINT", "Body & Paint"),
             ("FINANCE", "Finance & Insurance"),
-            ("ADMIN", "Administration"),
+            ("admin", "Administration"),
         ]
 
         for code, name in departments:

@@ -222,7 +222,7 @@ class Command(BaseCommand):
         # ------------------------------------------------------------------
         # Ensure roles exist (must be created by seed_core_data)
         # ------------------------------------------------------------------
-        required_roles = ["ADMIN", "MANAGEMENT", "SUPERVISOR", "EMPLOYEE", "AGENT"]
+        required_roles = ["admin", "management", "supervisor", "employee", "agent"]
 
         roles = {}
         for code in required_roles:
@@ -282,7 +282,7 @@ class Command(BaseCommand):
                 username="admin",
                 defaults={
                     "email": "admin@demo.com",
-                    "role": roles["ADMIN"],
+                    "role": roles["admin"],
                     "is_superuser": True,
                     "is_staff": True,
                 },
@@ -292,7 +292,7 @@ class Command(BaseCommand):
                 admin_user.set_password("superuser")
                 admin_user.save()
 
-            admin_user.groups.add(groups["ADMIN"])
+            admin_user.groups.add(groups["admin"])
             self.stdout.write(self.style.SUCCESS("Admin ready: admin"))
 
             # Manager
@@ -300,7 +300,7 @@ class Command(BaseCommand):
                 username="manager",
                 defaults={
                     "email": "manager@demo.com",
-                    "role": roles["MANAGEMENT"],
+                    "role": roles["management"],
                     "is_staff": True,
                 },
             )
@@ -309,7 +309,7 @@ class Command(BaseCommand):
                 manager_user.set_password("password")
                 manager_user.save()
 
-            manager_user.groups.add(groups["MANAGEMENT"])
+            manager_user.groups.add(groups["management"])
             self.stdout.write(self.style.SUCCESS("Manager ready: manager"))
 
         # ------------------------------------------------------------------
@@ -324,7 +324,7 @@ class Command(BaseCommand):
                 username=supervisor_username,
                 defaults={
                     "email": f"{supervisor_username}@demo.com",
-                    "role": roles["SUPERVISOR"],
+                    "role": roles["supervisor"],
                     "department": dept,
                     "is_staff": True,
                 },
@@ -334,7 +334,7 @@ class Command(BaseCommand):
                 supervisor.set_password("password")
                 supervisor.save()
 
-            supervisor.groups.add(groups["SUPERVISOR"])
+            supervisor.groups.add(groups["supervisor"])
 
             # Attach supervisor to department
             dept.supervisor = supervisor
@@ -352,7 +352,7 @@ class Command(BaseCommand):
                     username=emp_username,
                     defaults={
                         "email": f"{emp_username}@demo.com",
-                        "role": roles["EMPLOYEE"],
+                        "role": roles["employee"],
                         "department": dept,
                     },
                 )
@@ -361,7 +361,7 @@ class Command(BaseCommand):
                     employee.set_password("password")
                     employee.save()
 
-                employee.groups.add(groups["EMPLOYEE"])
+                employee.groups.add(groups["employee"])
 
                 self.stdout.write(
                     self.style.SUCCESS(f"Employee ready: {emp_username}")
