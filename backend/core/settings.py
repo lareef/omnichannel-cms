@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     # 'django_tailwind_cli',
     'crispy_forms',
     'crispy_tailwind',
+    "modern_csrf",
     # Local apps
     'accounts',
     'customers',
@@ -61,7 +62,7 @@ MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',  # local
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    "modern_csrf.middleware.ModernCsrfViewMiddleware",
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
