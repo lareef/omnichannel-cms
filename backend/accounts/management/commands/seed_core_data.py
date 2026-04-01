@@ -159,10 +159,10 @@ class Command(BaseCommand):
     def create_statuses(self):
 
         statuses = [
-            ("OPEN", "Open", False),
-            ("IN_PROGRESS", "In Progress", False),
-            ("RESOLVED", "Resolved", True),
-            ("CLOSED", "Closed", True),
+            ("open", "Open", False),
+            ("in_progress", "In Progress", False),
+            ("resolved", "Resolved", True),
+            ("closed", "Closed", True),
         ]
 
         for code, name, closed in statuses:
