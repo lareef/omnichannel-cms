@@ -1,0 +1,20 @@
+{% extends "allauth/layouts/base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="py-12">
+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">{% trans "Account Management" %}</h3>
+            </div>
+            <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
+                <div class="sm:px-6 py-4">
+                    {% block inner_content %}
+                    {% endblock %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

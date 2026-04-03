@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% load i18n %}
+
+{% block title %}
+    {% block head_title %}{% trans "Authentication" %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto">
+    {% block inner_content %}
+    {% endblock %}
+</div>
+{% endblock %}

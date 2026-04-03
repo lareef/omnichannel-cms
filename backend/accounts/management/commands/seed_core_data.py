@@ -111,13 +111,13 @@ class Command(BaseCommand):
     def create_departments(self):
 
         departments = [
-            ("SERVICE", "Service"),
-            ("SALES", "Sales"),
-            ("PARTS", "Spare Parts"),
-            ("CUSTOMER_CARE", "Customer Care"),
-            ("WARRANTY", "Warranty & Claims"),
-            ("BODY_PAINT", "Body & Paint"),
-            ("FINANCE", "Finance & Insurance"),
+            ("service", "Service"),
+            ("sales", "Sales"),
+            ("parts", "Spare Parts"),
+            ("customer_care", "Customer Care"),
+            ("warranty", "Warranty & Claims"),
+            ("body_paint", "Body & Paint"),
+            ("finance", "Finance & Insurance"),
             ("admin", "Administration"),
         ]
 
@@ -134,15 +134,15 @@ class Command(BaseCommand):
     # --------------------------------------------------
     def create_categories(self):
 
-        service = Department.objects.get(code="SERVICE")
-        sales = Department.objects.get(code="SALES")
-
+        service = Department.objects.get(code="service")
+        sales = Department.objects.get(code="sales")
+    
         categories = [
-            ("SERVICE_DELAY", "Service Delay", service),
-            ("SERVICE_QUALITY", "Service Quality Issue", service),
-            ("PARTS_DELAY", "Spare Parts Delay", service),
-            ("WARRANTY", "Warranty Issue", service),
-            ("SALES_EXP", "Sales Experience", sales),
+            ("service_delay", "Service Delay", service),
+            ("service_quality", "Service Quality Issue", service),
+            ("parts_delay", "Spare Parts Delay", service),
+            ("warranty", "Warranty Issue", service),
+            ("sales_experience", "Sales Experience", sales),
         ]
 
         for code, name, dept in categories:
@@ -204,10 +204,10 @@ class Command(BaseCommand):
     def create_channels(self):
 
         channels = [
-            ("WEB", "Web"),
-            ("EMAIL", "Email"),
-            ("WHATSAPP", "WhatsApp"),
-            ("MANUAL", "Manual"),
+            ("web", "Web"),
+            ("email", "Email"),
+            ("whatsapp", "WhatsApp"),
+            ("manual", "Manual"),
         ]
 
         for code, name in channels:

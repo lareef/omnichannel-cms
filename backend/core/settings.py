@@ -11,6 +11,8 @@ SECRET_KEY = env('SECRET_KEY')
 DEBUG = env.bool('DEBUG', default=False)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
+SITE_URL = 'https://omnichannel.autos'
+
 # Security settings for production
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
@@ -121,58 +123,61 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
 
-EMAIL_HOST = 'smtp.sendgrid.net'
+# EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_HOST_USER = 'apikey' # this is exactly the value 'apikey'
-EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+# EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL='noreply@omnichannel.autos'
 
 SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 
 
-# SendGrid API backend (recommended)
-# EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
-# SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
-
-# Optional but recommended for development:
-# If DEBUG=True, emails are not actually sent (sandbox mode)
-# SENDGRID_SANDBOX_MODE_IN_DEBUG = True   # default is True
-
-# For production (DEBUG=False), ensure sandbox is off
-# if not DEBUG:
-#     SENDGRID_SANDBOX_MODE_IN_DEBUG = False
-
-
-# EMAIL_HOST = env('EMAIL_HOST')
-# EMAIL_PORT = env.int('EMAIL_PORT')
-# EMAIL_HOST_USER = env('EMAIL_HOST_USER')
-# EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
-# EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS')
-# DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@localhost')
-# # SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
-# SENDGRID_API_KEY = env('SENDGRID_API_KEY', default='xsmtpsib-4e453d93628e7edb4d5cde8cc9a6f0a9fbf94c6d6ebd4bb28a8bc798fe6dae4e-Xz1ZZRN4GuC3ya3F')  # fallback for development
-# API_KEY = env('API_KEY', default='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')  # fallback for development
-
-# # SendGrid API backend (recommended)
-# EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
-# # SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
-
-# # Optional but recommended for development:
-# # If DEBUG=True, emails are not actually sent (sandbox mode)
-# SENDGRID_SANDBOX_MODE_IN_DEBUG = True   # default is True
-
-# # For production (DEBUG=False), ensure sandbox is off
-# if not DEBUG:
-#     SENDGRID_SANDBOX_MODE_IN_DEBUG = False
-
-# DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
-# You can leave EMAIL_HOST_USER and EMAIL_HOST_PASSWORD blank for MailHog
-
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'celery_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': '/tmp/celery.log',   # change to a path you have write access to
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'allauth': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'celery': {
+            'handlers': ['celery_file', 'console'],
+            'level': 'DEBUG',
+        },
+        'celery.task': {
+            'handlers': ['celery_file', 'console'],
+            'level': 'DEBUG',
+        },
+        'celery.worker': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+        },
+        'celery.beat': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+        },
+    },
+}
 
 ACCOUNT_FORMS = {
     'login': 'accounts.forms.CustomLoginForm',
@@ -219,6 +224,9 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_TASK_ALWAYS_EAGER = True  # for development, tasks run synchronously
+CELERY_WORKER_LOG_LEVEL = 'WARNING'
+CELERY_WORKER_REDIRECT_STDOUTS_LEVEL = 'WARNING'
 
 # Django Debug Toolbar (local only)
 INTERNAL_IPS = ['127.0.0.1']
@@ -259,9 +267,14 @@ LOGIN_REDIRECT_URL = "/"
 
 # Allauth settings
 # ACCOUNT_AUTHENTICATION_METHOD = 'username_email'  # or 'username', 'email'
-# ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # or 'optional' or 'mandatory'
+# ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_EMAIL_CONFIRMATION_HMAC = True   # default
+ACCOUNT_CONFIRM_EMAIL_ON_GET = False
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
+
 # ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
