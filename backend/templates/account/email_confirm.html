@@ -1,5 +1,3 @@
-{% extends 'base.html' %}
-{% load crispy_forms_tags %}
 {% extends "allauth/layouts/entrance.html" %}
 {% load i18n %}
 {% load account %}
@@ -13,14 +11,21 @@
         {% if confirmation %}
             {% user_display confirmation.email_address.user as user_display %}
             <p class="text-gray-600 mb-4">
-                {% blocktrans with confirmation.email_address.email as email %}Please confirm that <a href="mailto:{{ email }}" class="text-indigo-600">{{ email }}</a> is an email address for user {{ user_display }}.{% endblocktrans %}
+                {% blocktrans with email=confirmation.email_address.email user_display=user_display %}
+                    Please confirm that <strong>{{ email }}</strong> is an email address for user {{ user_display }}.
+                {% endblocktrans %}
             </p>
             <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
                 {% csrf_token %}
-                <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700">{% trans 'Confirm' %}</button>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700">
+                    {% trans "Confirm" %}
+                </button>
             </form>
         {% else %}
-            <p class="text-gray-600">{% trans "This email confirmation link expired or is invalid. Please <a href='{% url 'account_email' %}' class='text-indigo-600'>issue a new confirmation request</a>." %}</p>
+            <p class="text-gray-600">
+                {% trans "This email confirmation link expired or is invalid." %}
+                <a href="{% url 'account_email' %}" class="text-indigo-600">{% trans "Request a new confirmation email." %}</a>
+            </p>
         {% endif %}
     </div>
 </div>

@@ -190,6 +190,28 @@ ACCOUNT_FORMS = {
     # etc.
 }
 
+EMAIL_HOST = env('EMAIL_HOST')
+EMAIL_PORT = env.int('EMAIL_PORT')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@localhost')
+# DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
+# You can leave EMAIL_HOST_USER and EMAIL_HOST_PASSWORD blank for MailHog
+
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+ACCOUNT_FORMS = {
+    'login': 'accounts.forms.CustomLoginForm',
+    'signup': 'accounts.forms.CustomSignupForm',
+    'reset_password': 'accounts.forms.CustomResetPasswordForm',
+    'change_password': 'accounts.forms.CustomChangePasswordForm',
+    'reset_password_from_key': 'accounts.forms.CustomResetPasswordKeyForm',
+    # ... other forms
+    
+    # etc.
+}
+
 # Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
