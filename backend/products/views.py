@@ -1,9 +1,6 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-<<<<<<< Updated upstream
 from django.contrib import messages
-=======
->>>>>>> Stashed changes
 from django.contrib.messages.views import SuccessMessageMixin
 from tickets.views import SupervisorRequiredMixin  # adjust import path if needed
 from .models import Product
@@ -63,7 +60,6 @@ class ProductDeleteView(SupervisorRequiredMixin, DeleteView):
     success_message = "Product deleted."
 
     def delete(self, request, *args, **kwargs):
-<<<<<<< Updated upstream
         # Add this logging to debug CSRF/HTTPS issues
         import logging
         logger = logging.getLogger(__name__)
@@ -72,7 +68,5 @@ class ProductDeleteView(SupervisorRequiredMixin, DeleteView):
         logger.info(f"CSRF token in POST: {request.POST.get('csrfmiddlewaretoken')}")
         logger.info(f"CSRF cookie: {request.COOKIES.get('csrftoken')}")
         
-=======
->>>>>>> Stashed changes
         messages.success(self.request, self.success_message)
         return super().delete(request, *args, **kwargs)
