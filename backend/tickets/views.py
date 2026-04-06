@@ -17,17 +17,6 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import render
 from django.contrib.messages.views import SuccessMessageMixin
 
-
-# ----- Mixins for Role-Based Access -----
-# class AgentRequiredMixin(UserPassesTestMixin):
-#     """Allow only agents, supervisors, and admins."""
-#     def test_func(self):
-#         user = self.request.user
-#         if not user.is_authenticated:
-#             return False
-#         # Assuming role codes: 'agent', 'supervisor', 'admin'
-#         return user.role and user.role.code in ['agent', 'supervisor', 'admin']
-
 class AgentRequiredMixin(UserPassesTestMixin):
     """Allow only users with a valid agent/supervisor/admin role."""
     def test_func(self):
@@ -54,63 +43,13 @@ class SupervisorRequiredMixin(UserPassesTestMixin):
     """Allow only supervisors and admins."""
     def test_func(self):
         user = self.request.user
-        return user.is_authenticated and user.role and user.role.code in ['supervisor', 'admin']
-
-# ----- Dashboard / Ticket List -----
-class old_DashboardView(LoginRequiredMixin, AgentRequiredMixin, ListView):
-    model = Ticket
-    template_name = 'tickets/dashboard.html'
-    context_object_name = 'tickets'
-    paginate_by = 20
-
-    def get_queryset(self):
-        queryset = Ticket.objects.select_related(
-            'status', 'priority', 'customer', 'assigned_to'
-        ).order_by('-created_at')
-        
-        # self.filter_form.set_user(user)  # Pass user to filter form for assignment filtering
-
-        # Filter by user role
+        return user.is_authenticated and user.role and user.role.code in ['supervisor', 'admin', 'manager']
+    
+class ManagerRequiredMixin(UserPassesTestMixin):
+    """Allow only managers and admins."""
+    def test_func(self):
         user = self.request.user
-        if user.role and user.role.code == 'agent':
-            # Agents see only tickets assigned to them or unassigned tickets in their department
-            queryset = queryset.filter(
-                Q(assigned_to=user) |
-                Q(assigned_to__isnull=True, department=user.department)
-            )
-        # Supervisors and admins see all
-
-        # Apply request filters
-        self.filter_form = TicketFilterForm(self.request.GET, queryset=queryset)
-
-        # IMPORTANT: give the form the current user
-        self.filter_form.set_user(user)
-
-        if self.filter_form.is_valid():
-            queryset = self.filter_form.filter_queryset(queryset)
-        return queryset
-
-    # def get_context_data(self, **kwargs):
-    #     context = super().get_context_data(**kwargs)
-    #     context['filter_form'] = self.filter_form
-    #     return context
-
-    def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-            user = self.request.user
-            base_qs = Ticket.objects.all()
-
-            # Counts for stats cards
-            context['open_tickets_count'] = base_qs.filter(status__is_closed_state=False).count()
-            context['unassigned_count'] = base_qs.filter(assigned_to__isnull=True).count()
-            context['overdue_response_count'] = base_qs.filter(
-                response_due_at__lt=timezone.now(),
-                first_response_at__isnull=True
-            ).count()
-            context['my_tickets_count'] = base_qs.filter(assigned_to=user).count()
-
-            context['filter_form'] = self.filter_form
-            return context
+        return user.is_authenticated and user.role and user.role.code in ['manager', 'admin']
 
 class DashboardView(LoginRequiredMixin, AgentRequiredMixin, ListView):
     model = Ticket

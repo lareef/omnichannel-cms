@@ -1,0 +1,35 @@
+# Example of sending an email using Django's send_mail function
+
+from django.core.mail import send_mail
+
+send_mail(
+    'Test OmniChannel Subject',
+    'This is a message from live omnichannel.',
+    'noreply@omnichannel.autos',   # must match DEFAULT_FROM_EMAIL
+    ['lareef.lafir@gmail.com'],
+    fail_silently=False,
+)
+
+send_mail('Subject here', 'Here is the message.', 'noreply@omnichannel.autos', ['lareef.lafir@yahoo.com'], fail_silently=False)
+
+
+
+import os
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+
+message = Mail(
+    from_email='noreply@omnichannel.autos',
+    to_emails='lareef.lafir@yahoo.com',
+    subject='Sending with Twilio SendGrid is Fun',
+    html_content='<strong>and easy to do anywhere, even with Python</strong>')
+
+sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
+response = sg.send(message)
+print(response.status_code)   # Should be 202
+
+
+from allauth.account.models import EmailAddress
+email_address = EmailAddress.objects.get(email='your-email@example.com')
+email_address.send_confirmation(request=None, signup=True)
+# The confirmation URL will be printed in the console (if using console backend) or you can extract the key

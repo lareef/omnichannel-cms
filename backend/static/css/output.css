@@ -1113,6 +1113,10 @@ input:where([type='file']):focus {
   width: 2rem;
 }
 
+.w-auto {
+  width: auto;
+}
+
 .w-full {
   width: 100%;
 }

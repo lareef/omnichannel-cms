@@ -115,6 +115,23 @@
                             </li>
                         {% endif %}
 
+                        {% if user.role.code == 'manager' %}
+                            <li>
+                                <a href="{% url 'utilities:calendar_list' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">Business Calendars</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'accounts:pending_users' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">Pending Approvals</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'products:product_list' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">Manage Products</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'analytics:sla_dashboard' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">SLA Dashboard</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'tickets:escalation_policy_list' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">Escalation Policies</a>
+                            </li>
+                        {% endif %}
                     </ul>                    <!-- existing sidebar links -->
                 </ul>
             </div>

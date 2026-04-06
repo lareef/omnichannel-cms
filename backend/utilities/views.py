@@ -14,7 +14,9 @@ class AdminRequiredMixin(UserPassesTestMixin):
             return False
         if user.is_superuser:
             return True
-        return user.role and user.role.code == 'admin'
+        # return user.role and user.role.code == 'admin'
+        return user.role.code in ['supervisor', 'admin', 'manager']
+
 
 # ----- Calendar Management -----
 
