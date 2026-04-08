@@ -124,61 +124,47 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
-# SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
-
-# EMAIL_HOST = 'smtp.sendgrid.net'
-EMAIL_HOST_USER = 'apikey' # this is exactly the value 'apikey'
-# EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL='noreply@omnichannel.autos'
-
-SENDGRID_SANDBOX_MODE_IN_DEBUG = False
-
-
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'celery_file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': '/tmp/celery.log',   # change to a path you have write access to
-        },
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-        },
-        'allauth': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-        },
-        'celery': {
-            'handlers': ['celery_file', 'console'],
-            'level': 'DEBUG',
-        },
-        'celery.task': {
-            'handlers': ['celery_file', 'console'],
-            'level': 'DEBUG',
-        },
-        'celery.worker': {
-            'handlers': ['console'],
-            'level': 'WARNING',
-        },
-        'celery.beat': {
-            'handlers': ['console'],
-            'level': 'WARNING',
-        },
-    },
-}
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'handlers': {
+#         'celery_file': {
+#             'level': 'DEBUG',
+#             'class': 'logging.FileHandler',
+#             'filename': '/tmp/celery.log',   # change to a path you have write access to
+#         },
+#         'console': {
+#             'class': 'logging.StreamHandler',
+#         },
+#     },
+#     'loggers': {
+#         'django': {
+#             'handlers': ['console'],
+#             'level': 'INFO',
+#         },
+#         'allauth': {
+#             'handlers': ['console'],
+#             'level': 'DEBUG',
+#         },
+#         'celery': {
+#             'handlers': ['celery_file', 'console'],
+#             'level': 'DEBUG',
+#         },
+#         'celery.task': {
+#             'handlers': ['celery_file', 'console'],
+#             'level': 'DEBUG',
+#         },
+#         'celery.worker': {
+#             'handlers': ['console'],
+#             'level': 'WARNING',
+#         },
+#         'celery.beat': {
+#             'handlers': ['console'],
+#             'level': 'WARNING',
+#         },
+#     },
+# }
 
 ACCOUNT_FORMS = {
     'login': 'accounts.forms.CustomLoginForm',
@@ -191,6 +177,18 @@ ACCOUNT_FORMS = {
     # etc.
 }
 
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
+EMAIL_HOST_USER = 'apikey' # this is exactly the value 'apikey'
+DEFAULT_FROM_EMAIL=os.getenv('DEFAULT_FROM_EMAIL')
+SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+
+# EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+# EMAIL_HOST = 'smtp.sendgrid.net'
+# EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
 # EMAIL_HOST = env('EMAIL_HOST')
 # EMAIL_PORT = env.int('EMAIL_PORT')
 # EMAIL_HOST_USER = env('EMAIL_HOST_USER')
@@ -199,7 +197,6 @@ ACCOUNT_FORMS = {
 # DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@localhost')
 # DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 # You can leave EMAIL_HOST_USER and EMAIL_HOST_PASSWORD blank for MailHog
-
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 ACCOUNT_FORMS = {
@@ -290,7 +287,7 @@ LOGIN_REDIRECT_URL = "/"
 
 # Allauth settings
 # ACCOUNT_AUTHENTICATION_METHOD = 'username_email'  # or 'username', 'email'
-ACCOUNT_EMAIL_REQUIRED = True
+# ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # or 'optional' or 'mandatory'
 # ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_UNIQUE_EMAIL = True
