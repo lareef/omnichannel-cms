@@ -198,3 +198,236 @@ Use Git tags to mark releases (e.g., v1.0.0):
 bash
 git tag -a v1.0.0 -m "First stable release"
 git push origin v1.0.0
+
+📦 1. Commit
+A commit is a snapshot of your project’s files at a specific point in time.
+
+It saves your changes permanently in the local Git history.
+
+Each commit has a unique ID (hash) and a message describing what changed.
+
+You commit after staging files (git add).
+
+Example:
+
+bash
+git add backend/core/settings.py
+git commit -m "Fix logging permission issue"
+When to commit:
+
+You have finished a logical piece of work.
+
+You want to share your changes with others (via git push).
+
+🗃️ 2. Stash
+A stash temporarily saves your uncommitted changes (both staged and unstaged) and reverts your working directory to the last commit.
+
+It’s like a “shelf” where you put aside modifications without committing them.
+
+Useful when you need to switch branches or pull updates but are not ready to commit.
+
+Example:
+
+bash
+git stash               # saves changes and cleans working directory
+git pull origin main    # now works without conflicts
+git stash pop           # reapplies your stashed changes
+When to stash:
+
+You have local modifications that you don’t want to commit yet, but you need to update your branch (e.g., git pull).
+
+You want to test something on a clean state without losing your work.
+
+🔀 3. Merge
+A merge combines changes from two different branches into one.
+
+When you git pull, it fetches remote changes and merges them into your current branch.
+
+If there are conflicting changes (both branches modified the same lines), Git will mark conflicts for you to resolve manually.
+
+Example:
+
+bash
+git checkout main
+git merge feature-branch    # merges feature-branch into main
+When to merge:
+
+You want to integrate work from another branch (e.g., after a pull request).
+
+You update your local branch with remote changes (via git pull which does fetch + merge).
+
+🔄 How they work together (common scenario)
+You have uncommitted changes on your VPS (e.g., you edited settings.py). You want to pull the latest code from GitHub without losing your modifications.
+
+Step‑by‑step:
+Stash your local changes (temporarily remove them):
+
+bash
+git stash
+Pull remote changes (fetch and merge):
+
+bash
+git pull origin main
+This will update your branch with the latest commits from GitHub.
+
+Re‑apply your stashed changes (restore your local modifications):
+
+bash
+git stash pop
+If there are conflicts (e.g., the same file was changed both locally and remotely), Git will pause and ask you to resolve them. You edit the conflicting file, then git add it and continue.
+
+If you are satisfied with the result, you can commit your merged work (including your local changes) or keep them unstaged for further editing.
+
+If you don't need your local changes anymore, you can discard the stash instead of popping it:
+
+bash
+git stash drop
+⚠️ Important notes
+Commit is permanent; stash is temporary.
+
+Merge can create a new commit (merge commit) if the branches diverged.
+
+To avoid conflicts, always stash or commit your local changes before pulling.
+
+If you have committed changes locally and then pull, Git will attempt to merge automatically. If there are conflicts, you resolve them and then commit the merge.
+
+🎯 Your situation on the VPS
+You have a local modification (commented logging handler).
+
+You want to pull new code from GitHub without losing that change.
+
+Solution:
+
+bash
+git stash
+git pull origin main
+git stash pop
+If a conflict arises (unlikely for just a comment change), resolve it, then git add and git stash drop (or continue working).
+
+If you never want to lose that logging change, consider making it permanent by committing it (after fixing the log path to a writable location) – then you won't need to stash it every time.
+
+Let me know if you'd like a visual diagram or more examples!
+
+yes, give me a visual diagram as I need a clear understanding of git commands
+We need to produce a visual diagram explaining Git commands: commit, stash, merge, and how they interact. The user requested a "visual diagram" – likely a text-based diagram (ASCII art) or a description of a diagram. Since this is a text interface, we can create an ASCII flowchart or a step-by-step visual representation. We'll also include the scenario of pulling remote changes while having local uncommitted changes, using stash.
+
+We'll produce a clear ASCII diagram showing the flow of working directory, staging area, local repo, remote repo, and the operations. Also show stash as a temporary storage.
+
+Let's create a diagram and explanation.
+
+I'll provide a text-based diagram (ASCII art) to help you visualize how commit, stash, and merge work together, especially when you have local changes and need to pull updates from a remote repository.
+
+🖼️ Visual Diagram: Git Workflow with Stash & Merge
+text
+          ┌─────────────────────────────────────────────────────────────┐
+          │                       REMOTE REPOSITORY                     │
+          │                      (e.g., GitHub, origin)                 │
+          │                                                             │
+          │   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐    │
+          │   │ Commit A│──▶│ Commit B│──▶│ Commit C│──▶│ Commit D│    │
+          │   └─────────┘   └─────────┘   └─────────┘   └─────────┘    │
+          │        ▲                           ▲                        │
+          └────────┼───────────────────────────┼────────────────────────┘
+                   │                           │
+                   │ git fetch / pull          │ git push
+                   │ (merge remote changes)    │ (send local commits)
+                   │                           │
+          ┌────────┼───────────────────────────┼────────────────────────┐
+          │        │                           │                        │
+          │   ┌────▼────┐                 ┌─────▼─────┐                  │
+          │   │  Local  │                 │  Local    │                  │
+          │   │  Commits│                 │  Commits  │                  │
+          │   │ (main)  │                 │  (main)   │                  │
+          │   └────┬────┘                 └─────┬─────┘                  │
+          │        │                            │                        │
+          │        │ git merge                  │ git commit             │
+          │        │ (merge branches)           │ (save staged changes)  │
+          │        ▼                            ▼                        │
+          │   ┌─────────────────────────────────────┐                    │
+          │   │           LOCAL REPOSITORY           │                    │
+          │   │         (stored in .git folder)      │                    │
+          │   └─────────────────────────────────────┘                    │
+          │                    ▲                                          │
+          │                    │ git add                                 │
+          │                    │ (stage changes)                         │
+          │                    │                                          │
+          │   ┌────────────────┴────────────────┐                       │
+          │   │          STAGING AREA            │                       │
+          │   │    (changes ready to commit)     │                       │
+          │   └────────────────┬────────────────┘                       │
+          │                    │                                          │
+          │                    │ git stash                               │
+          │                    │ (temporarily save uncommitted changes)  │
+          │                    ▼                                          │
+          │   ┌─────────────────────────────────────┐                    │
+          │   │               STASH                 │                    │
+          │   │   (temporary storage – stack)       │                    │
+          │   │    stash@{0}: changes on main       │                    │
+          │   │    stash@{1}: earlier changes       │                    │
+          │   └────────────────┬────────────────────┘                    │
+          │                    │                                          │
+          │                    │ git stash pop / apply                   │
+          │                    │ (restore changes to working dir)        │
+          │                    ▼                                          │
+          │   ┌─────────────────────────────────────┐                    │
+          │   │          WORKING DIRECTORY          │                    │
+          │   │      (your actual files on disk)    │                    │
+          │   └─────────────────────────────────────┘                    │
+          │                                                             │
+          └─────────────────────────────────────────────────────────────┘
+🔄 Step‑by‑step flow with stash + merge (common scenario)
+You have uncommitted changes in your working directory (e.g., edited settings.py).
+
+You need to pull the latest updates from the remote branch (e.g., git pull origin main).
+
+Without stash: Git refuses because it would overwrite your local changes.
+
+You run git stash – this moves your uncommitted changes to the stash stack, cleaning your working directory.
+
+Now git pull origin main works – it fetches remote commits and merges them into your local branch (fast‑forward or creates a merge commit).
+
+You run git stash pop – this applies the stashed changes back to your working directory.
+
+If there are no conflicts, the changes are restored and the stash is removed.
+
+If there are conflicts (both remote and your stash changed the same lines), Git pauses; you resolve conflicts manually, then git add and git stash drop (or git stash pop again).
+
+You can now commit your merged work (including the restored changes) or continue editing.
+
+📦 Commit – Stash – Merge: Quick Definitions
+Command	Purpose	Effect on history	When to use
+git commit	Save staged changes permanently	Creates a new commit (snapshot)	After finishing a logical unit of work
+git stash	Temporarily shelve uncommitted changes	No commit; changes go to a stack	Before pulling/switching branches when you're not ready to commit
+git merge	Combine two branches	Creates a merge commit (unless fast‑forward)	After fetching remote changes, or when integrating a feature branch
+🧪 Practical example with commands
+bash
+# 1. You have uncommitted changes
+echo "debug = True" >> settings.py
+git status          # shows modified: settings.py
+
+# 2. Stash them
+git stash           # saves changes, working directory clean
+
+# 3. Pull remote updates
+git pull origin main   # fetches and merges remote commits
+
+# 4. Apply stash back
+git stash pop        # restores changes, may conflict
+
+# 5. If conflict occurs, resolve, then:
+git add settings.py
+git stash drop       # remove the stash after successful pop
+
+# 6. Commit the merged result (including your changes)
+git commit -m "Merge remote changes and keep my settings"
+🧠 Key points to remember
+Stash is a temporary shelf – it's not a commit. Don't rely on it for long‑term storage.
+
+Merge creates a commit that ties together two lines of development.
+
+Always stash or commit before pulling to avoid merge conflicts caused by uncommitted changes.
+
+If you have committed changes locally and then pull, Git will attempt to merge automatically; you may still need to resolve conflicts, but you won't need stash.
+
+I hope this visual + explanation clears up how these Git operations work together! Let me know if you'd like a more detailed diagram or specific examples.
+

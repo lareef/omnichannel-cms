@@ -28,6 +28,7 @@ if not DEBUG:
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
+    'django.contrib.sites',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
@@ -39,7 +40,7 @@ INSTALLED_APPS = [
     'auditlog',
     'allauth',
     'allauth.account',
-    'allauth.socialaccount',
+ #   'allauth.socialaccount',
     'django_celery_beat',
     'django_celery_results',
     'django_filters',
@@ -108,6 +109,7 @@ DATABASES = {
 
 # Custom user model
 AUTH_USER_MODEL = 'accounts.User'
+SITE_ID = 1
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

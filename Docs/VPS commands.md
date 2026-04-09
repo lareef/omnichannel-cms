@@ -16,3 +16,9 @@ docker-compose -f docker-compose.prod.yml build --no-cache
 docker-compose -f docker-compose.prod.yml up -d
 docker-compose -f docker-compose.prod.yml exec web python manage.py migrate
 docker-compose -f docker-compose.prod.yml exec web python manage.py collectstatic --noinput
+
+git stash
+git pull origin main
+git stash pop
+
+docker-compose -f docker-compose.prod.yml exec web env | grep EMAIL_BACKEND
