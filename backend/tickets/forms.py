@@ -2,8 +2,9 @@ from django import forms
 from .models import Ticket, TicketUpdate, Message, EscalationPolicy, TicketStatus, TicketPriority
 from django.db.models import Q
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit
-from crispy_forms.layout import Layout, Field
+from crispy_forms.layout import Layout, Field, Div, Submit
+from django.utils import timezone
+from django.forms import FileField
 
 class TicketFilterForm(forms.Form):
     ASSIGNMENT_CHOICES = [
@@ -97,6 +98,14 @@ class TicketUpdateForm(forms.ModelForm):
         widget=forms.Textarea(attrs={'rows': 2, 'placeholder': 'Add a comment...'}),
         required=False
     )
+    
+    is_internal_note = forms.BooleanField(required=False, label="Internal note (not visible to customer)")
+    
+    # In the form:
+    attachments = forms.FileField(
+        required=False,
+        help_text="You can select one file."
+    )
 
     class Meta:
         model = Ticket
@@ -106,6 +115,25 @@ class TicketUpdateForm(forms.ModelForm):
         # Pop the current user from kwargs (passed from view)
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
+        self.helper = FormHelper()
+        self.helper.form_tag = False   # we will use custom form tag in template
+        self.helper.disable_csrf = True  # CSRF added manually in template
+        self.helper.layout = Layout(
+            Div(
+                Field('status', css_class='mt-1 block w-full rounded-md border-gray-300 shadow-sm'),
+                Field('priority', css_class='mt-1 block w-full rounded-md border-gray-300 shadow-sm'),
+                Field('assigned_to', css_class='mt-1 block w-full rounded-md border-gray-300 shadow-sm'),
+                css_class='grid grid-cols-2 gap-3'
+            ),
+            Field('comment', rows=2, css_class='mt-1 block w-full rounded-md border-gray-300 shadow-sm'),
+            Div(
+                Field('is_internal_note', css_class='mr-2'),
+                css_class='mt-2 flex items-center'
+            ),
+            Field('attachments', css_class='mt-2'),
+        )
+
 
         # Restrict assignable users based on role
         if self.user and self.user.role:

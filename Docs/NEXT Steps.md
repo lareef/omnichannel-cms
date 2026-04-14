@@ -24,3 +24,12 @@ Let me know how you'd like to proceed, and I'll provide the necessary code and g
 
 - Escalation matrix: Allow multiple levels with different targets.
 
+# Future enhancements (when you have time)
+Real‑time updates with Django Channels (WebSockets)
+
+Advanced reporting with charts and export (CSV/PDF)
+
+AI‑powered suggestions (using DeepSeek API)
+
+ERP integration (Outbox pattern)
+

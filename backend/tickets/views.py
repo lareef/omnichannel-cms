@@ -16,6 +16,142 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render
 from django.contrib.messages.views import SuccessMessageMixin
+from django.contrib.admin.views.decorators import staff_member_required
+from twilio.rest import Client
+from django.conf import settings
+import logging
+from twilio.base.exceptions import TwilioRestException
+from django.core.mail import send_mail
+from utilities.models import WhatsAppTemplate
+
+from django.template import Template, Context
+from django.utils.safestring import mark_safe
+
+
+def send_whatsapp_message(ticket, comment, agent_user):
+    # Get active template
+    template_obj = WhatsAppTemplate.objects.filter(is_active=True).first()
+    if not template_obj:
+        template_obj = WhatsAppTemplate.objects.create(
+            name="default",
+            header="Dear {{customer_name}},",
+            footer="Best regards,\n{{agent_name}}\nSupport Team",
+            separator="\n\n",
+            is_active=True
+        )
+
+    # Replace any literal \n with actual newlines (in case admin typed them)
+    header = template_obj.header.replace('\\n', '\n')
+    footer = template_obj.footer.replace('\\n', '\n')
+    separator = template_obj.separator.replace('\\n', '\n')
+
+    context = {
+        'customer_name': ticket.customer_name or "Valued Customer",
+        'agent_name': agent_user.get_full_name() or agent_user.username,
+        'comment': comment,
+        'ticket_number': ticket.ticket_number,
+    }
+
+    from django.template import Template, Context
+    header_rendered = Template(header).render(Context(context))
+    footer_rendered = Template(footer).render(Context(context))
+
+    full_message = f"{header_rendered}{separator}{comment}{separator}{footer_rendered}"
+
+    # Send via Twilio
+    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+    client.messages.create(
+        body=full_message,
+        from_=f'whatsapp:{settings.TWILIO_WHATSAPP_NUMBER}',
+        to=f'whatsapp:{ticket.customer_contact}'
+    )
+
+def send_status_update_via_whatsapp(ticket, old_status, new_status, agent_user=None):
+    """
+    Send a WhatsApp message to the customer informing them of a status change.
+    """
+    if not ticket.customer_contact:
+        return
+
+    customer_name = ticket.customer_name or "Valued Customer"
+    agent_name = agent_user.get_full_name() if agent_user else "System"
+
+    if new_status.is_closed_state:
+        status_text = "closed"
+        additional = "Thank you for your patience. If you have further questions, please reply to this message."
+    else:
+        status_text = f"updated to {new_status.name}"
+        additional = "We will continue working on your request."
+
+    message = (
+        f"🔔 *Ticket #{ticket.ticket_number} Status Update*\n\n"
+        f"Dear {customer_name},\n\n"
+        f"Your ticket status has been {status_text}.\n"
+        f"{additional}\n\n"
+        f"Best regards,\n{agent_name}\nSupport Team"
+    )
+
+    try:
+        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+        client.messages.create(
+            body=message,
+            from_=f'whatsapp:{settings.TWILIO_WHATSAPP_NUMBER}',
+            to=f'whatsapp:{ticket.customer_contact}'
+        )
+        logger.info(f"Status update WhatsApp sent for ticket {ticket.ticket_number}")
+    except Exception as e:
+        logger.error(f"Failed to send status update WhatsApp: {e}")
+
+# def send_whatsapp_message(ticket, comment, agent_user):
+#     """
+#     Send a WhatsApp reply using the active template.
+#     """
+#     # Get active template (first active, or create default if none)
+#     template_obj = WhatsAppTemplate.objects.filter(is_active=True).first()
+#     if not template_obj:
+#         # Create a default template on the fly (optional)
+#         template_obj = WhatsAppTemplate.objects.create(
+#             name="default",
+#             header="Dear {{customer_name}},",
+#             footer="Best regards,\n{{agent_name}}\nSupport Team",
+#             separator="\n\n",
+#             is_active=True
+#         )
+
+#     # Prepare context
+#     context = {
+#         'customer_name': ticket.customer_name or "Valued Customer",
+#         'agent_name': agent_user.get_full_name() or agent_user.username,
+#         'comment': comment,
+#         'ticket_number': ticket.ticket_number,
+#         'company_name': settings.COMPANY_NAME,  # optional, add to settings
+#         'website': settings.COMPANY_WEBSITE,    # optional
+#     }
+
+#     # Build the full message
+#     header = Template(template_obj.header).render(Context(context))
+#     footer = Template(template_obj.footer).render(Context(context))
+#     separator = template_obj.separator
+
+#     full_message = f"{header}{separator}{comment}{separator}{footer}"
+
+#     # Optional: add a link to the logo (if you have a public URL)
+#     # full_message += f"\n\n{settings.COMPANY_LOGO_URL}"  # text link
+
+#     try:
+#         client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+#         message = client.messages.create(
+#             body=full_message,
+#             from_=f'whatsapp:{settings.TWILIO_WHATSAPP_NUMBER}',
+#             to=f'whatsapp:{ticket.customer_contact}'
+#         )
+#         logger.info(f"WhatsApp message sent. SID: {message.sid}")
+#         return True
+#     except Exception as e:
+#         logger.error(f"Twilio error: {e}")
+#         return False
+
+
 
 class AgentRequiredMixin(UserPassesTestMixin):
     """Allow only users with a valid agent/supervisor/admin role."""
@@ -117,7 +253,7 @@ class TicketListView(DashboardView):
 # ----- Ticket Detail -----
 class TicketDetailView(LoginRequiredMixin, AgentRequiredMixin, DetailView):
     model = Ticket
-    template_name = 'tickets/ticket_detail.html'
+    template_name = 'tickets/partials/ticket_detail.html'
     context_object_name = 'ticket'
 
     def get_queryset(self):
@@ -167,7 +303,75 @@ class old_TicketDetailView(LoginRequiredMixin, AgentRequiredMixin, DetailView):
         context['update_form'] = TicketUpdateForm(instance=ticket)
         return context
 
+logger = logging.getLogger(__name__)
 
+
+@login_required
+def send_whatsapp_reply(request, pk):
+    ticket = get_object_or_404(Ticket, pk=pk)
+    # Optional: check user role (agent, supervisor, admin)
+    if request.method == 'POST':
+        reply_body = request.POST.get('reply')
+        if not reply_body:
+            messages.error(request, "Reply text is empty.")
+            return redirect('tickets:ticket_detail', pk=ticket.pk)
+
+        if not ticket.customer_contact:
+            messages.error(request, "Customer contact number missing.")
+            return redirect('tickets:ticket_detail', pk=ticket.pk)
+
+        try:
+            client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+            message = client.messages.create(
+                body=reply_body,
+                from_=f'whatsapp:{settings.TWILIO_WHATSAPP_NUMBER}',
+                to=f'whatsapp:{ticket.customer_contact}'
+            )
+            # Save agent's message as a conversation entry
+            Message.objects.create(
+                ticket=ticket,
+                sender_type='agent',
+                sender_user=request.user,
+                content=reply_body,
+                is_internal_note=False,
+            )
+            messages.success(request, f"WhatsApp reply sent. SID: {message.sid}")
+            logger.info(f"WhatsApp reply sent to {ticket.customer_contact}")
+        except TwilioRestException as e:
+            logger.error(f"Twilio error: {e}")
+            messages.error(request, f"Twilio error: {e}")
+        except Exception as e:
+            logger.exception("Unexpected error")
+            messages.error(request, f"Failed to send reply: {str(e)}")
+        return redirect('tickets:ticket_detail', pk=ticket.pk)
+    return redirect('tickets:ticket_detail', pk=ticket.pk)
+
+# @staff_member_required
+# def send_whatsapp_reply(request, pk):
+#     ticket = get_object_or_404(Ticket, pk=pk)
+#     if request.method == 'POST':
+#         reply_body = request.POST.get('reply')
+#         if reply_body and ticket.customer_contact:
+#             # Send via Twilio
+#             client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+#             client.messages.create(
+#                 body=reply_body,
+#                 from_=f'whatsapp:{settings.TWILIO_WHATSAPP_NUMBER}',
+#                 to=f'whatsapp:{ticket.customer_contact}'
+#             )
+#             # Save agent's message as a message record (optional)
+#             Message.objects.create(
+#                 ticket=ticket,
+#                 sender_type='agent',
+#                 sender_user=request.user,
+#                 content=reply_body,
+#                 is_internal_note=False,
+#             )
+#             messages.success(request, "WhatsApp reply sent.")
+#         else:
+#             messages.error(request, "Missing reply text or customer contact.")
+#         return redirect('tickets:ticket_detail', pk=ticket.pk)
+#     return redirect('tickets:ticket_detail', pk=ticket.pk)
 # ----- HTMX Partials -----
 
 def ticket_detail_partial(request, pk):
@@ -191,38 +395,142 @@ def ticket_detail_partial(request, pk):
     html = render_to_string('tickets/partials/ticket_detail.html', context, request=request)
     return HttpResponse(html)
 
+# def send_whatsapp_message(to_number, message_body):
+#     try:
+#         client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+#         message = client.messages.create(
+#             body=message_body,
+#             from_=f'whatsapp:{settings.TWILIO_WHATSAPP_NUMBER}',
+#             to=f'whatsapp:{to_number}'
+#         )
+#         logger.info(f"WhatsApp message sent. SID: {message.sid}")
+#         return True
+#     except TwilioRestException as e:
+#         logger.error(f"Twilio error: {e}")
+#         return False
+#     except Exception as e:
+#         logger.exception("Unexpected error sending WhatsApp message")
+#         return False
+
+def send_email_reply(ticket, comment, agent_user):
+    """Send an email reply to the customer."""
+    subject = f"Re: {ticket.subject} (Ticket #{ticket.ticket_number})"
+    message = f"Dear {ticket.customer_name},\n\n{comment}\n\n---\nYou can view your ticket at: https://{settings.SITE_DOMAIN}/track/{ticket.tracking_token.token}\n\nThank you."
+    from_email = settings.DEFAULT_FROM_EMAIL
+    recipient_list = [ticket.customer_email]
+
+    # Generate a custom Message-ID that includes the ticket ID for threading
+    message_id = f"<ticket-{ticket.id}.{timezone.now().timestamp()}@omnichannel.autos>"
+
+    # In-Reply-To can be set if you store the original Message-ID from customer's first email
+    # For simplicity, we'll just set a unique Message-ID.
+
+    send_mail(
+        subject=subject,
+        message=message,
+        from_email=from_email,
+        recipient_list=recipient_list,
+        fail_silently=False,
+        headers={'Message-ID': message_id}
+    )
+
+@login_required
 def update_ticket(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
-    # Permission check (as before)
+    # Permission check (same as before)
     user = request.user
-    if user.role and user.role.code == 'agent' and not (ticket.assigned_to == user or (ticket.assigned_to is None and ticket.department == user.department)):
+    # if user.role.code == 'agent' and not (ticket.assigned_to == user or (ticket.assigned_to is None and ticket.department == user.department)):
+    if user.role.code == 'agent' and not (ticket.assigned_to == user or (ticket.assigned_to is None )):
         return HttpResponseForbidden()
 
     if request.method == 'POST':
-        form = TicketUpdateForm(request.POST, instance=ticket, user=user)  # pass user
+        form = TicketUpdateForm(request.POST, instance=ticket, user=user)
         if form.is_valid():
+            # Save ticket changes (status, priority, assigned_to)
             ticket, changes = form.save(updated_by=user)
-            # Create notifications
+            # Handle comment
+            comment = form.cleaned_data.get('comment')
+            is_internal = form.cleaned_data.get('is_internal_note', False)
+            if comment:
+                # Save as Message
+                message = Message.objects.create(
+                    ticket=ticket,
+                    sender_type='agent',
+                    sender_user=user,
+                    content=comment,
+                    is_internal_note=is_internal,
+                )
+                
+                # Handle attachments
+                attachments = request.FILES.getlist('attachments')
+                for f in attachments:
+                    MessageAttachment.objects.create(
+                        message=message,
+                        file=f,
+                        original_name=f.name,
+                        content_type=f.content_type,
+                        size=f.size
+                    )
+                # If channel is WhatsApp and not internal, send WhatsApp reply
+                if ticket.channel.code == 'whatsapp' and not is_internal and ticket.customer_contact:
+                    send_whatsapp_message(ticket, comment, user)
+                # If channel is email and not internal, send email reply
+                elif ticket.channel.code == 'email' and not is_internal and ticket.customer_email:
+                    send_email_reply(ticket, comment, user)  # define this function (see previous answer)
+            # Notify about changes (if any)
             if changes:
-                notify_ticket_update(ticket, changes, updated_by=request.user)
-            messages.success(request, "Ticket updated successfully.")
-            # Return updated detail partial
-            messages_qs = ticket.messages.select_related('sender_user').prefetch_related('attachments').order_by('sent_at')
-            context = {
-                'ticket': ticket,
-                'messages': messages_qs,
-            }
-            html = render_to_string('tickets/partials/ticket_detail.html', context, request=request)
-            # return HttpResponse(html)
-            response = HttpResponse(html)
-            response['HX-Trigger'] = '{"showToast": {"message": "Ticket updated successfully", "type": "success"}}'
-            return response
+                notify_ticket_update(ticket, changes, updated_by=user)
+                # Inside update_ticket, after form.save() and before returning response
+                if 'old_status' in changes and changes['new_status']:
+                    old_status = changes['old_status']
+                    new_status = changes['new_status']
+                    # Only send if the status changed (not the same) and ticket is WhatsApp
+                    if ticket.channel.code == 'whatsapp' and old_status != new_status:
+                        send_status_update_via_whatsapp(ticket, old_status, new_status, user)
+
+            # Return updated detail partial (HTMX)
+            html = render_to_string('tickets/partials/ticket_detail.html', {'ticket': ticket}, request=request)
+            return HttpResponse(html)
         else:
             html = render_to_string('tickets/partials/update_form.html', {'form': form, 'ticket': ticket}, request=request)
             return HttpResponse(html, status=400)
     else:
-        form = TicketUpdateForm(instance=ticket, user=user)  # pass user
+        form = TicketUpdateForm(instance=ticket, user=user)
         return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
+
+
+# def update_ticket(request, pk):
+#     ticket = get_object_or_404(Ticket, pk=pk)
+#     # Permission check (as before)
+#     user = request.user
+#     if user.role and user.role.code == 'agent' and not (ticket.assigned_to == user or (ticket.assigned_to is None and ticket.department == user.department)):
+#         return HttpResponseForbidden()
+
+#     if request.method == 'POST':
+#         form = TicketUpdateForm(request.POST, instance=ticket, user=user)  # pass user
+#         if form.is_valid():
+#             ticket, changes = form.save(updated_by=user)
+#             # Create notifications
+#             if changes:
+#                 notify_ticket_update(ticket, changes, updated_by=request.user)
+#             messages.success(request, "Ticket updated successfully.")
+#             # Return updated detail partial
+#             messages_qs = ticket.messages.select_related('sender_user').prefetch_related('attachments').order_by('sent_at')
+#             context = {
+#                 'ticket': ticket,
+#                 'messages': messages_qs,
+#             }
+#             html = render_to_string('tickets/partials/ticket_detail.html', context, request=request)
+#             # return HttpResponse(html)
+#             response = HttpResponse(html)
+#             response['HX-Trigger'] = '{"showToast": {"message": "Ticket updated successfully", "type": "success"}}'
+#             return response
+#         else:
+#             html = render_to_string('tickets/partials/update_form.html', {'form': form, 'ticket': ticket}, request=request)
+#             return HttpResponse(html, status=400)
+#     else:
+#         form = TicketUpdateForm(instance=ticket, user=user)  # pass user
+#         return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
     
 def old_update_ticket(request, pk):
     """Handle ticket update form submission (HTMX)."""

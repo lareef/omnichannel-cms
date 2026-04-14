@@ -42,3 +42,19 @@ class Holiday(models.Model):
 
     def __str__(self):
         return f"{self.date} - {self.name}"
+    
+class WhatsAppTemplate(models.Model):
+    name = models.CharField(max_length=100, unique=True, default="default")
+    header = models.TextField(blank=True, help_text="Text before the reply (e.g., 'Dear {{customer_name}},')")
+    footer = models.TextField(blank=True, help_text="Text after the reply (e.g., 'Best regards, {{agent_name}}')")
+    separator = models.CharField(max_length=20, default="\n\n", help_text="Separator between sections")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "WhatsApp Template"
+        verbose_name_plural = "WhatsApp Templates"
+
+    def __str__(self):
+        return self.name

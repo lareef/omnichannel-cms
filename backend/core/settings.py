@@ -128,46 +128,46 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     'handlers': {
-#         'celery_file': {
-#             'level': 'DEBUG',
-#             'class': 'logging.FileHandler',
-#             'filename': '/tmp/celery.log',   # change to a path you have write access to
-#         },
-#         'console': {
-#             'class': 'logging.StreamHandler',
-#         },
-#     },
-#     'loggers': {
-#         'django': {
-#             'handlers': ['console'],
-#             'level': 'INFO',
-#         },
-#         'allauth': {
-#             'handlers': ['console'],
-#             'level': 'DEBUG',
-#         },
-#         'celery': {
-#             'handlers': ['celery_file', 'console'],
-#             'level': 'DEBUG',
-#         },
-#         'celery.task': {
-#             'handlers': ['celery_file', 'console'],
-#             'level': 'DEBUG',
-#         },
-#         'celery.worker': {
-#             'handlers': ['console'],
-#             'level': 'WARNING',
-#         },
-#         'celery.beat': {
-#             'handlers': ['console'],
-#             'level': 'WARNING',
-#         },
-#     },
-# }
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'celery_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': '/tmp/celery.log',   # change to a path you have write access to
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'allauth': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'celery': {
+            'handlers': ['celery_file', 'console'],
+            'level': 'DEBUG',
+        },
+        'celery.task': {
+            'handlers': ['celery_file', 'console'],
+            'level': 'DEBUG',
+        },
+        'celery.worker': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+        },
+        'celery.beat': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+        },
+    },
+}
 
 ACCOUNT_FORMS = {
     'login': 'accounts.forms.CustomLoginForm',
@@ -186,6 +186,14 @@ SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
 EMAIL_HOST_USER = 'apikey' # this is exactly the value 'apikey'
 DEFAULT_FROM_EMAIL=os.getenv('DEFAULT_FROM_EMAIL')
 SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
+TWILIO_WHATSAPP_NUMBER = os.getenv('TWILIO_WHATSAPP_NUMBER')  # e.g., '+14155238886'
+
+COMPANY_NAME = "OmniChannel Automotive"
+COMPANY_WEBSITE = "https://omnichannel.autos"
+COMPANY_LOGO_URL = "https://omnichannel.autos/static/images/logo.png"  # text only
 
 # EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
 # EMAIL_HOST = 'smtp.sendgrid.net'

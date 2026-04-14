@@ -33,4 +33,6 @@ urlpatterns = [
     path('escalation-policies/add/', views.EscalationPolicyCreateView.as_view(), name='escalation_policy_add'),
     path('escalation-policies/<int:pk>/edit/', views.EscalationPolicyUpdateView.as_view(), name='escalation_policy_edit'),
     path('escalation-policies/<int:pk>/delete/', views.EscalationPolicyDeleteView.as_view(), name='escalation_policy_delete'),
+    
+    path('ticket/<int:pk>/send-whatsapp-reply/', views.send_whatsapp_reply, name='send_whatsapp_reply'),
 ]

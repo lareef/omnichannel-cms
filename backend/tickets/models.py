@@ -1,3 +1,4 @@
+import os
 import uuid
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -336,10 +337,18 @@ class Message(models.Model):
     def __str__(self):
         return f"Message on {self.ticket.ticket_number} at {self.sent_at}"
 
+def message_attachment_upload_to(instance, filename):
+    # Get file extension
+    ext = filename.split('.')[-1] if '.' in filename else ''
+    # Generate unique name: UUID + original extension
+    unique_name = f"{uuid.uuid4().hex}{'.' + ext if ext else ''}"
+    # Return path: message_attachments/unique_name
+    return os.path.join('message_attachments', unique_name)
 
 class MessageAttachment(models.Model):
     message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='attachments')
-    file = models.FileField(upload_to='message_attachments/%Y/%m/%d/')
+    # file = models.FileField(upload_to='message_attachments/%Y/%m/%d/')
+    file = models.FileField(upload_to=message_attachment_upload_to)
     original_name = models.CharField(max_length=500)
     content_type = models.CharField(max_length=200, blank=True)
     size = models.PositiveIntegerField(help_text="Size in bytes", null=True, blank=True)
