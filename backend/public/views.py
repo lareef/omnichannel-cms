@@ -1,5 +1,7 @@
+from datetime import timedelta
+
 from django.shortcuts import render, get_object_or_404, redirect, render
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.views.decorators.http import require_http_methods, require_POST
 from tickets.models import TicketCategory, TicketCategoryField, Message, MessageAttachment, Ticket, TicketStatus, TicketPriority, TicketChannel
 from .forms import PublicSubmissionForm
@@ -20,6 +22,7 @@ from django.core.files.base import ContentFile
 from tickets.models import MessageAttachment
 from accounts.models import Department  # adjust import if needed
 from notifications.views import send_ticket_confirmation_email, send_whatsapp_new_ticket_notification
+from django.db.models import Q
 
 
 logger = logging.getLogger(__name__)
@@ -137,7 +140,8 @@ def whatsapp_webhook(request):
             save_attachments(msg)
             logger.info(f"Created new ticket {ticket.ticket_number}")
             # Create tracking token for rich reply
-            token_obj, _ = TicketTrackingToken.objects.get_or_create(ticket=ticket)
+            token_obj, _ = TicketTrackingToken.objects.get_or_create(ticket=ticket,
+                            defaults={'expires_at': timezone.now() + timedelta(days=30)})
             tracking_link = f"https://{request.get_host()}/track/{token_obj.token}"
             reply_text = (
                 f"Thank you for contacting us. Your complaint has been received.\n"
@@ -240,7 +244,30 @@ def home(request):
     return render(request, 'public/landing.html')
 
 def track_ticket(request, token):
-    token_obj = get_object_or_404(TicketTrackingToken, token=token, expires_at__gte=timezone.now())
+    # token_obj = get_object_or_404(TicketTrackingToken, token=token, expires_at__gte=timezone.now())
+    
+    # token_obj = get_object_or_404(
+    #     TicketTrackingToken.objects.filter(
+    #         token=token,
+    #         ticket__status__is_closed_state=False
+    #     ).filter(
+    #         Q(expires_at__isnull=True) | Q(expires_at__gte=timezone.now())
+    #     )
+    # )
+    print(f"=== track_ticket called with token: {token} ===")
+    try:
+        token_obj = get_object_or_404(
+            TicketTrackingToken.objects.filter(
+                token=token,
+                ticket__status__is_closed_state=False
+            ).filter(
+                Q(expires_at__isnull=True) | Q(expires_at__gte=timezone.now())
+            )
+        )
+        print(f"Token object found: {token_obj.id}, ticket_id: {token_obj.ticket_id}")
+    except Http404:
+        print("Token not found or conditions not met")
+        raise
     ticket = token_obj.ticket
     message_list = ticket.messages.filter(is_internal_note=False).exclude(sender_type='system').order_by('sent_at')
 
@@ -331,42 +358,82 @@ def track_ticket_no_htmx(request, token):
         'token': token,
     }
     return render(request, 'public/track_ticket.html', context)
-
 def track_entry(request):
     if request.method == 'POST':
-        token = request.POST.get('token')
-        ticket_number = request.POST.get('ticket_number')
-        contact = request.POST.get('contact')
-
-        # Method 1: Token
-        if token:
-            try:
-                token_obj = TicketTrackingToken.objects.get(token=token, expires_at__gte=timezone.now())
-                return redirect('track_ticket', token=token_obj.token)
-            except TicketTrackingToken.DoesNotExist:
-                messages.error(request, "Invalid or expired token.")
-                return render(request, 'public/partials/track_entry.html')
-
-        # Method 2: Ticket number + contact
-        elif ticket_number and contact:
-            try:
-                ticket = Ticket.objects.get(ticket_number=ticket_number)
-                # Check contact matches either customer_email or customer_contact
-                if (ticket.customer_email == contact) or (ticket.customer_contact == contact):
-                    # Optionally create a token on‑the‑fly for redirection
-                    token_obj, created = TicketTrackingToken.objects.get_or_create(
-                        ticket=ticket,
-                        defaults={'expires_at': timezone.now() + timezone.timedelta(days=30)}
+        # Check which form was used
+        if 'token' in request.POST:
+            token = request.POST.get('token', '').strip()
+            if token:
+                # Validate UUID format
+                try:
+                    uuid_obj = uuid.UUID(token)
+                    token_obj = TicketTrackingToken.objects.get(
+                        token=uuid_obj,
+                        expires_at__gte=timezone.now()
                     )
                     return redirect('track_ticket', token=token_obj.token)
-                else:
-                    messages.error(request, "Ticket number and contact do not match.")
-            except Ticket.DoesNotExist:
-                messages.error(request, "Ticket number not found.")
+                except (ValueError, TicketTrackingToken.DoesNotExist):
+                    messages.error(request, "Invalid or expired tracking token.")
+            else:
+                messages.error(request, "Please enter a tracking token.")
         else:
-            messages.error(request, "Please provide either a token OR ticket number + contact.")
+            # Ticket number + contact method
+            ticket_number = request.POST.get('ticket_number', '').strip()
+            contact = request.POST.get('contact', '').strip()
+            if ticket_number and contact:
+                try:
+                    ticket = Ticket.objects.get(ticket_number=ticket_number)
+                    if (ticket.customer_email == contact) or (ticket.customer_contact == contact):
+                        # Create token on the fly (or use existing)
+                        token_obj, _ = TicketTrackingToken.objects.get_or_create(
+                            ticket=ticket,
+                            defaults={'expires_at': timezone.now() + timezone.timedelta(days=30)}
+                        )
+                        return redirect('track_ticket', token=token_obj.token)
+                    else:
+                        messages.error(request, "Ticket number and contact do not match.")
+                except Ticket.DoesNotExist:
+                    messages.error(request, "Ticket number not found.")
+            else:
+                messages.error(request, "Please provide both ticket number and contact.")
+        return render(request, 'public/track_entry.html')
+    return render(request, 'public/track_entry.html')
 
-    return render(request, 'public/partials/track_entry.html')
+# def track_entry(request):
+#     if request.method == 'POST':
+#         token = request.POST.get('token')
+#         ticket_number = request.POST.get('ticket_number')
+#         contact = request.POST.get('contact')
+
+#         # Method 1: Token
+#         if token:
+#             try:
+#                 token_obj = TicketTrackingToken.objects.get(token=token, expires_at__gte=timezone.now())
+#                 return redirect('track_ticket', token=token_obj.token)
+#             except TicketTrackingToken.DoesNotExist:
+#                 messages.error(request, "Invalid or expired token.")
+#                 return render(request, 'public/partials/track_entry.html')
+
+#         # Method 2: Ticket number + contact
+#         elif ticket_number and contact:
+#             try:
+#                 ticket = Ticket.objects.get(ticket_number=ticket_number)
+#                 # Check contact matches either customer_email or customer_contact
+#                 if (ticket.customer_email == contact) or (ticket.customer_contact == contact):
+#                     # Optionally create a token on‑the‑fly for redirection
+#                     token_obj, created = TicketTrackingToken.objects.get_or_create(
+#                         ticket=ticket,
+#                         defaults={'expires_at': timezone.now() + timezone.timedelta(days=30)}
+#                     )
+#                     return redirect('track_ticket', token=token_obj.token)
+#                 else:
+#                     messages.error(request, "Ticket number and contact do not match.")
+#             except Ticket.DoesNotExist:
+#                 messages.error(request, "Ticket number not found.")
+#         else:
+#             messages.error(request, "Please provide either a token OR ticket number + contact.")
+
+#     return render(request, 'public/partials/track_entry.html')
 
 def submit_complaint(request):
     if request.method == 'POST':
@@ -407,9 +474,10 @@ def submit_complaint(request):
             )
 
             # 3. Create a tracking token
-            token = TicketTrackingToken.objects.create(
+            token_obj, created = TicketTrackingToken.objects.get_or_create(
                 ticket=ticket,
-                expires_at=timezone.now() + timezone.timedelta(days=30)  # e.g., 30 days
+                # expires_at=timezone.now() + timezone.timedelta(days=30)  # e.g., 30 days
+                defaults={'expires_at': timezone.now() + timedelta(days=30)}
             )
 
             # 4. (Optional) Send email/SMS with tracking link
@@ -423,10 +491,10 @@ def submit_complaint(request):
 
             messages.success(
                 request,
-                f"Your complaint has been submitted. Your tracking token is: {token.token}"
+                f"Your complaint has been submitted. Your tracking token is: {token_obj.token}"
             )
             # Redirect to the public track page with the token
-            return redirect('track_ticket', token=token.token)
+            return redirect('track_ticket', token=token_obj.token)
     else:
         form = PublicSubmissionForm()
     return render(request, 'public/submit_complaint.html', {'form': form})

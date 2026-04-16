@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Track Your Complaint{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white shadow rounded-lg p-6">
+        <h1 class="text-2xl font-bold text-center text-gray-900 mb-6">Track Your Complaint</h1>
+
+        {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                    <div class="p-3 rounded-md {% if message.tags == 'error' %}bg-red-50 text-red-800{% else %}bg-blue-50 text-blue-800{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Tab buttons -->
+        <div class="border-b border-gray-200 mb-4">
+            <nav class="flex -mb-px">
+                <button id="tab-token" class="tab-button active mr-8 py-2 px-1 border-b-2 border-indigo-500 font-medium text-sm text-indigo-600" onclick="showTab('token')">Use Tracking Token</button>
+                <button id="tab-number" class="tab-button py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" onclick="showTab('number')">Use Ticket Number</button>
+            </nav>
+        </div>
+
+        <!-- Token form -->
+        <form id="form-token" method="post" class="space-y-6">
+            {% csrf_token %}
+            <div>
+                <label for="token" class="block text-sm font-medium text-gray-700">Tracking Token</label>
+                <input type="text" name="token" id="token" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" placeholder="e.g., abc123-def456-...">
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700">Track with Token</button>
+        </form>
+
+        <!-- Ticket number + contact form -->
+        <form id="form-number" method="post" class="space-y-6 hidden">
+            {% csrf_token %}
+            <div>
+                <label for="ticket_number" class="block text-sm font-medium text-gray-700">Ticket Number</label>
+                <input type="text" name="ticket_number" id="ticket_number" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" placeholder="e.g., CRM-2026-00001">
+            </div>
+            <div>
+                <label for="contact" class="block text-sm font-medium text-gray-700">Email or Phone</label>
+                <input type="text" name="contact" id="contact" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" placeholder="Enter the email or phone used when submitting">
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700">Track with Ticket Number</button>
+        </form>
+
+        <div class="mt-6 text-center text-sm text-gray-500">
+            <p>Didn't receive a token? <a href="{% url 'submit_complaint' %}" class="text-indigo-600 hover:text-indigo-500">Submit a new complaint</a>.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showTab(tab) {
+        const tokenForm = document.getElementById('form-token');
+        const numberForm = document.getElementById('form-number');
+        const tokenButton = document.getElementById('tab-token');
+        const numberButton = document.getElementById('tab-number');
+        if (tab === 'token') {
+            tokenForm.classList.remove('hidden');
+            numberForm.classList.add('hidden');
+            tokenButton.classList.add('active', 'border-indigo-500', 'text-indigo-600');
+            tokenButton.classList.remove('border-transparent', 'text-gray-500');
+            numberButton.classList.remove('active', 'border-indigo-500', 'text-indigo-600');
+            numberButton.classList.add('border-transparent', 'text-gray-500');
+        } else {
+            numberForm.classList.remove('hidden');
+            tokenForm.classList.add('hidden');
+            numberButton.classList.add('active', 'border-indigo-500', 'text-indigo-600');
+            numberButton.classList.remove('border-transparent', 'text-gray-500');
+            tokenButton.classList.remove('active', 'border-indigo-500', 'text-indigo-600');
+            tokenButton.classList.add('border-transparent', 'text-gray-500');
+        }
+    }
+</script>
+{% endblock %}

@@ -5,15 +5,60 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-    <!-- Header with ticket number -->
+    <!-- Header -->
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Ticket #{{ ticket.ticket_number }}</h1>
         <p class="text-sm text-gray-500">Submitted on {{ ticket.created_at|date:"F j, Y, g:i a" }}</p>
     </div>
 
-    <!-- Ticket summary card (same as before) -->
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
-        <!-- ... existing summary ... -->
+    <!-- Ticket Metadata Grid (same as staff view) -->
+    <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg mb-4">
+        <div>
+            <p class="text-xs text-gray-500">Customer</p>
+            <p class="text-sm font-medium">{{ ticket.customer_name }}</p>
+            <p class="text-xs text-gray-600">{{ ticket.customer_contact }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-500">Channel</p>
+            <p class="text-sm font-medium">{{ ticket.channel.name }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-500">Category</p>
+            <p class="text-sm font-medium">{{ ticket.category.name }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-500">Department</p>
+            <p class="text-sm font-medium">{{ ticket.department.name|default:"—" }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-500">Priority</p>
+            <span class="px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full
+                {% if ticket.priority.level == 5 %}bg-red-100 text-red-800
+                {% elif ticket.priority.level == 4 %}bg-orange-100 text-orange-800
+                {% elif ticket.priority.level == 3 %}bg-yellow-100 text-yellow-800
+                {% elif ticket.priority.level == 2 %}bg-blue-100 text-blue-800
+                {% else %}bg-green-100 text-green-800{% endif %}">
+                {{ ticket.priority.name }}
+            </span>
+        </div>
+        <div>
+            <p class="text-xs text-gray-500">Status</p>
+            <span class="px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full
+                {% if ticket.status.is_closed_state %}bg-gray-100 text-gray-800
+                {% elif ticket.status.code == 'in_progress' %}bg-yellow-100 text-yellow-800
+                {% else %}bg-green-100 text-green-800{% endif %}">
+                {{ ticket.status.name }}
+            </span>
+        </div>
+        <!-- No assignment, no SLA, no update form – those are staff-only -->
+    </div>
+
+    <!-- Subject & Description -->
+    <div class="mb-4">
+        <h3 class="text-md font-semibold text-gray-700 mb-1">Subject</h3>
+        <p class="text-gray-800 bg-gray-50 p-3 rounded">{{ ticket.subject }}</p>
+        <h3 class="text-md font-semibold text-gray-700 mt-3 mb-1">Description</h3>
+        <p class="text-gray-800 bg-gray-50 p-3 rounded whitespace-pre-wrap">{{ ticket.description }}</p>
     </div>
 
     <!-- Conversation Thread -->
@@ -23,27 +68,46 @@
         </div>
         <div class="px-4 py-5 sm:px-6 space-y-4" id="message-list">
             {% for message in messages %}
-                {% include 'public/partials/single_message.html' %}
+                <div class="flex {% if message.sender_type == 'customer' %}justify-start{% else %}justify-end{% endif %}">
+                    <div class="max-w-lg rounded-lg p-3 {% if message.is_internal_note %}bg-yellow-100 border border-yellow-300{% elif message.sender_type == 'customer' %}bg-gray-100{% else %}bg-indigo-100{% endif %}">
+                        <div class="flex items-center space-x-2 text-xs text-gray-600 mb-1">
+                            <span class="font-semibold">{{ message.sender_name }}</span>
+                            <span>{{ message.sent_at|date:"M j, Y, g:i a" }}</span>
+                            {% if message.is_internal_note %}
+                                <span class="bg-yellow-200 text-yellow-800 px-1 rounded">Internal Note</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-gray-800 whitespace-pre-wrap">{{ message.content }}</p>
+                        {% if message.attachments.exists %}
+                            <div class="mt-2 border-t pt-2">
+                                <p class="text-xs font-medium text-gray-500">Attachments:</p>
+                                <ul class="list-disc list-inside">
+                                    {% for attachment in message.attachments.all %}
+                                        <li>
+                                            <a href="javascript:void(0)" onclick="previewAttachment('{{ attachment.file.url }}', '{{ attachment.original_name }}', '{{ attachment.content_type }}')" class="text-xs text-indigo-600 hover:text-indigo-800 hover:underline">
+                                                {{ attachment.original_name }}
+                                            </a>
+                                            <span class="text-xs text-gray-400">({{ attachment.size|filesizeformat }})</span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
             {% empty %}
                 <p class="text-gray-500 text-center">No messages yet.</p>
             {% endfor %}
         </div>
     </div>
 
-    <!-- Reply Form with HTMX -->
+    <!-- Reply Form (customer only) -->
     <div class="bg-white shadow sm:rounded-lg">
         <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
             <h3 class="text-lg leading-6 font-medium text-gray-900">Add a Reply</h3>
         </div>
         <div class="px-4 py-5 sm:px-6">
-            <form id="reply-form"
-                  method="post"
-                  enctype="multipart/form-data"
-                  hx-post="{{ request.path }}"
-                  hx-target="#message-list"
-                  hx-swap="beforeend"
-                  hx-encoding="multipart/form-data"
-                  hx-on="htmx:afterRequest: this.reset()">
+            <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div>
                     <label for="reply" class="sr-only">Your reply</label>
@@ -51,12 +115,8 @@
                               class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                               placeholder="Type your reply here..."></textarea>
                 </div>
-
-                <!-- File attachment input -->
                 <div class="mt-4">
-                    <label for="attachments" class="block text-sm font-medium text-gray-700">
-                        Attachments (optional)
-                    </label>
+                    <label for="attachments" class="block text-sm font-medium text-gray-700">Attachments (optional)</label>
                     <input type="file" name="attachments" id="attachments" multiple
                            class="mt-1 block w-full text-sm text-gray-500
                                   file:mr-4 file:py-2 file:px-4
@@ -66,7 +126,6 @@
                                   hover:file:bg-indigo-100">
                     <p class="mt-1 text-xs text-gray-500">You can select multiple files (max 10MB each).</p>
                 </div>
-
                 <div class="mt-4 flex justify-end">
                     <button type="submit"
                             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">

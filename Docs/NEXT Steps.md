@@ -33,3 +33,5 @@ AI‑powered suggestions (using DeepSeek API)
 
 ERP integration (Outbox pattern)
 
+# outline a progressive AI roadmap
+
