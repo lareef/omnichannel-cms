@@ -239,7 +239,8 @@ class DashboardView(LoginRequiredMixin, AgentRequiredMixin, ListView):
         context['unassigned_count'] = self.base_queryset.filter(assigned_to__isnull=True).count()
         context['overdue_response_count'] = self.base_queryset.filter(
             response_due_at__lt=timezone.now(),
-            first_response_at__isnull=True
+            first_response_at__isnull=True,
+            status__is_closed_state=False 
         ).count()
         context['my_tickets_count'] = self.base_queryset.filter(assigned_to=user).count()
         context['filter_form'] = self.filter_form

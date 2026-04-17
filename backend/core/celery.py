@@ -18,4 +18,12 @@ app.conf.beat_schedule = {
         'task': 'analytics.tasks.refresh_ticket_metrics',
         'schedule': crontab(minute=0),  # every hour at minute 0
     },
+    'check-sla-breaches': {
+        'task': 'tickets.tasks.check_sla_breaches',
+        'schedule': crontab(minute='*/5'),  # every 5 minute
+    },
+    'cleanup-expired-tokens': {
+        'task': 'public.tasks.cleanup_expired_tokens',        
+        'schedule': crontab(hour='0', minute='0'),  # daily at midnight
+    },
 }
