@@ -5,7 +5,30 @@
       hx-encoding="multipart/form-data">
     {% csrf_token %}
     {% crispy form %}
+    <div id="file-list" class="mt-2 text-sm text-gray-600 space-y-1"></div>
     <div class="flex justify-end mt-4">
         <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Update Ticket</button>
     </div>
+
+<script>
+    (function() {
+        const fileInput = document.getElementById('id_attachments');
+        if (fileInput && !fileInput.hasAttribute('data-listener-attached')) {
+            fileInput.setAttribute('data-listener-attached', 'true');
+            fileInput.addEventListener('change', function(e) {
+                const fileListDiv = document.getElementById('file-list');
+                fileListDiv.innerHTML = '';
+                const files = Array.from(e.target.files);
+                if (files.length === 0) return;
+                files.forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                    fileItem.classList.add('bg-gray-100', 'px-2', 'py-1', 'rounded', 'flex', 'items-center', 'justify-between');
+                    fileListDiv.appendChild(fileItem);
+                });
+            });
+        }
+    })();
+</script>
+
 </form>

@@ -23,9 +23,74 @@ import logging
 from twilio.base.exceptions import TwilioRestException
 from django.core.mail import send_mail
 from utilities.models import WhatsAppTemplate
+from .ai_utils import call_deepseek
+from django.http import JsonResponse
 
 from django.template import Template, Context
 from django.utils.safestring import mark_safe
+
+@login_required
+def ai_suggest_reply(request, pk):
+    ticket = get_object_or_404(Ticket, pk=pk)
+    if request.method == 'POST':
+        # Get current comment (if any) – not needed for suggestion, but we'll pass it for context
+        current_comment = request.POST.get('comment', '')
+        # Generate AI reply using ticket context and current_comment (optional)
+        prompt = f"Write a helpful reply to the customer regarding ticket #{ticket.ticket_number}. The latest customer message: {ticket.messages.last().content if ticket.messages.exists() else ticket.description}. Write a polite response (max 150 words)."
+        reply = call_deepseek(prompt)
+        # Create a new form instance with the reply as the comment
+        form = TicketUpdateForm(instance=ticket, user=request.user, initial={'comment': reply})
+        # Render the partial update form
+        return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
+    return HttpResponse(status=405)
+
+@login_required
+def ai_translate_to_arabic(request, pk):
+    ticket = get_object_or_404(Ticket, pk=pk)
+    if request.method == 'POST':
+        current_comment = request.POST.get('comment', '')
+        if not current_comment:
+            # Return the form unchanged with an error message (optional)
+            form = TicketUpdateForm(instance=ticket, user=request.user, initial={'comment': current_comment})
+            return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
+        prompt = f"Translate the following English text to Arabic (standard Arabic). Output only the translation.\n\nText: {current_comment}"
+        translation = call_deepseek(prompt)
+        translation = translation.strip('"').strip("'")
+        # Append translation to the existing comment
+        new_comment = f"{current_comment}\n\n{translation}"
+        form = TicketUpdateForm(instance=ticket, user=request.user, initial={'comment': new_comment})
+        return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
+    return HttpResponse(status=405)
+
+# @login_required
+# def ai_suggest_reply(request, pk):
+#     ticket = get_object_or_404(Ticket, pk=pk)
+#     # Gather conversation (last 5 messages)
+#     messages = ticket.messages.order_by('-sent_at')[:5]
+#     conversation = "\n".join([f"{m.sender_type}: {m.content}" for m in messages[::-1]])
+#     latest_message = ticket.messages.last().content if ticket.messages.exists() else ticket.description
+#     prompt = f"""You are a customer support agent. Based on the conversation below, write a polite and helpful reply to the customer.
+
+# Conversation:
+# {conversation}
+
+# Latest customer message: {latest_message}
+
+# Write a reply (max 150 words):"""
+#     reply = call_deepseek(prompt)
+#     # return JsonResponse({'reply': reply})
+#     return HttpResponse(reply)
+
+# @login_required
+# def ai_translate_to_arabic(request, pk):
+#     text = request.GET.get('text', '')
+#     if not text:
+#         return JsonResponse({'error': 'No text provided'}, status=400)
+#     prompt = f"Translate the following English text to Arabic (use standard Arabic, not dialect). Output only the translation, no extra commentary.\n\nText: {text}"
+#     translation = call_deepseek(prompt)
+#     # Remove any surrounding quotes if present (sometimes AI returns quoted string)
+#     translation = translation.strip('"').strip("'")
+#     return HttpResponse(translation)
 
 
 def send_whatsapp_message(ticket, comment, agent_user):

@@ -1,5 +1,5 @@
-# 📊 What is SLA in Your System?
-In your system, SLA defines the maximum allowed time for two key actions:
+# 📊 What is SLA in the System?
+SLA defines the maximum allowed time for two key actions:
 
 First response – time from ticket creation until an agent replies.
 
@@ -12,46 +12,32 @@ Critical	1 hour	4 hours
 High	4 hours	24 hours
 Medium	8 hours	48 hours
 Low	24 hours	5 days
-You can also define business hours (e.g., only count working hours) – this is handled by the SlaRule model and a BusinessCalendar.
+business hours can be defined (e.g., only count working hours) – this is handled by the SlaRule model and a BusinessCalendar.
 
 # 🧠 How SLA Rules Are Stored
-Model: SlaRule (in tickets/models.py)
+SlaRule (in tickets)
 
 Fields:
 
 priority – which priority this rule applies to.
-
 department (optional) – restrict to a specific department.
-
 response_hours – target hours for first response.
-
 resolution_hours – target hours for resolution.
-
 business_hours_only – if True, only count time during defined business hours (using a BusinessCalendar).
-
 is_active – enable/disable the rule.
-
 When a ticket is created, the system looks up the active SlaRule matching its priority and department (if any). It then calculates two due dates:
-
 response_due_at = created_at + response_hours (adjusted for business hours if enabled).
-
 resolution_due_at = created_at + resolution_hours (adjusted similarly).
-
 These due dates are stored directly on the Ticket model.
 
 # ⏰ How SLA Breaches Are Detected (Periodic Tasks)
-Your system runs a Celery task every minute called check_sla_breaches (in tickets/tasks.py). This task:
-
+System runs a Celery task every minute called check_sla_breaches (in tickets/tasks). This task:
 Queries for tickets where:
-
 response_due_at is in the past and first_response_at is NULL and is_response_breached is False.
-
 Similarly for resolution_due_at and resolved_at.
 
 For each such ticket, it:
-
 Sets is_response_breached = True (or is_resolution_breached).
-
 Saves the ticket.
 
 Triggers escalation by calling check_escalation_for_ticket.delay(ticket.id) asynchronously.
@@ -62,13 +48,9 @@ This ensures that within one minute of a missed deadline, the breach flag is set
 Once a breach is detected (or other events like “no activity for X minutes”), the escalation engine takes over.
 
 EscalationPolicy model defines rules:
-
 trigger_event – what triggers escalation (e.g., response_breach, resolution_breach, time_since_creation, no_activity).
-
 level – 1, 2, 3, etc. (higher level = more severe).
-
 threshold_minutes – used for time‑based triggers.
-
 escalate_to_role or escalate_to_user – who to notify.
 
 When a ticket meets the criteria (e.g., a response breach of level 1), the system:
@@ -76,15 +58,11 @@ When a ticket meets the criteria (e.g., a response breach of level 1), the syste
 Creates a TicketEscalation record.
 
 Notifies the target user (in‑app notification + email).
-
 Updates the ticket’s escalation_level field.
-
 You can have multiple levels: if after level 1 the issue isn’t resolved, another policy with a higher level may trigger (e.g., after 2 more hours).
 
 The escalation check is also triggered:
-
 By the periodic check_sla_breaches task (for breaches).
-
 By a separate periodic check_escalations task (for time‑based events like “no activity for 2 hours”).
 
 Manually when a ticket is updated (e.g., an agent changes status).
@@ -93,11 +71,8 @@ Manually when a ticket is updated (e.g., an agent changes status).
 The SLA dashboard reads pre‑computed metrics from the TicketMetrics model.
 
 TicketMetrics stores for each ticket:
-
 first_response_time (seconds)
-
 resolution_time
-
 sla_breached_response, sla_breached_resolution
 
 Counts (escalations, reassignments, etc.)
@@ -107,7 +82,6 @@ These metrics are refreshed periodically by refresh_ticket_metrics (Celery task,
 The dashboard shows:
 
 Open tickets, average response/resolution times, breach counts.
-
 Daily charts for opened vs resolved, breaches, escalations.
 
 🔧 Periodic Tasks at a Glance
@@ -118,7 +92,7 @@ refresh_ticket_metrics	Updates TicketMetrics table for dashboard.	Every 15‑60 
 cleanup_expired_tokens	Deletes expired public tracking tokens.	Daily.
 celery.backend_cleanup	Cleans up old Celery task results.	Daily (built‑in).
 
-# ✅ Answering Client Questions
+# ✅ Frequent Client Questions
 
 Q: How does the system know when to escalate?
 A: We define escalation policies (e.g., “if a critical ticket’s response is overdue, escalate to the supervisor”). A background task runs every minute, checks all open tickets, and automatically creates escalation records and sends notifications.
@@ -150,7 +124,7 @@ SLA targets are set per priority, globally across all departments.
 
 Breach detection runs every minute via Celery task.
 
-Single‑level escalation – when a ticket breaches a SLA, the system creates an escalation and notifies a predefined user or role (you can set up one level, e.g., escalate to supervisor).
+Single‑level e2scalation – when a ticket breaches a SLA, the system creates an escalation and notifies a predefined user or role (you can set up one level, e.g., escalate to supervisor).
 
 Dashboard shows breaches, average times, and trends.
 

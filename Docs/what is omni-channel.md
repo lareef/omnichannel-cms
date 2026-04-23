@@ -51,7 +51,7 @@ Transition history – Your TicketUpdate already tracks status changes, so you c
 
 # 6. Multi‑Tenancy / Organisational Hierarchy
 
-If the system will serve multiple dealers/brands, consider adding a Tenant or Organisation model and linking all relevant tables (Customer, Department, User, Ticket) to it. django‑tenants can help, but may be overkill; a simple FK often suffices.
+If the system will serve multiple dealers/brands, consider adding a Tenant or Organisation model and linking all relevant (Customer, Department, User, Ticket) to it. django‑tenants can help, but may be overkill; a simple FK often suffices.
 
 # 7. Performance Analytics
 

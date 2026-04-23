@@ -5,6 +5,22 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Field, Div, Submit
 from django.utils import timezone
 from django.forms import FileField
+from accounts.models import Department
+
+from django.forms.widgets import ClearableFileInput
+
+class MultipleFileInput(ClearableFileInput):
+    def __init__(self, attrs=None):
+        # Remove 'multiple' from attrs before calling super
+        if attrs and 'multiple' in attrs:
+            self.multiple = attrs.pop('multiple')
+        else:
+            self.multiple = True
+        super().__init__(attrs)
+        self.attrs['multiple'] = True
+
+    def value_from_datadict(self, data, files, name):
+        return files.getlist(name)
 
 class TicketFilterForm(forms.Form):
     ASSIGNMENT_CHOICES = [
@@ -93,7 +109,154 @@ class TicketFilterForm(forms.Form):
         self.filtered_queryset = queryset
         return queryset
 
+class TicketUpdateMultipleAttachmentsForm(forms.ModelForm):
+    comment = forms.CharField(widget=forms.Textarea(attrs={'rows': 2}), required=False)
+    is_internal_note = forms.BooleanField(required=False, label="Internal note")
+    attachments = forms.FileField(widget=forms.ClearableFileInput(attrs={'multiple': False}), required=False)
+
+    class Meta:
+        model = Ticket
+        fields = ['status', 'priority', 'assigned_to', 'department']   # add department
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        # Restrict department choices (optional)
+        self.fields['department'].queryset = Department.objects.filter(is_active=True)
+        # Store original values for change detection
+        if self.instance.pk:
+            self.original_status = self.instance.status
+            self.original_priority = self.instance.priority
+            self.original_assigned_to = self.instance.assigned_to
+            self.original_department = self.instance.department   # add this
+
+    def save(self, updated_by=None, commit=True):
+        ticket = super().save(commit=False)
+        if commit:
+            changes = {}
+            if self.original_status != ticket.status:
+                changes['old_status'] = self.original_status
+                changes['new_status'] = ticket.status
+            if self.original_priority != ticket.priority:
+                changes['old_priority'] = self.original_priority
+                changes['new_priority'] = ticket.priority
+            if self.original_assigned_to != ticket.assigned_to:
+                changes['old_assigned_to'] = self.original_assigned_to
+                changes['new_assigned_to'] = ticket.assigned_to
+            if self.original_department != ticket.department:   # add department change
+                changes['old_department'] = self.original_department
+                changes['new_department'] = ticket.department
+            ticket.save()
+            # Create TicketUpdate record (existing code)
+            if changes or self.cleaned_data.get('comment'):
+                TicketUpdate.objects.create(
+                    ticket=ticket,
+                    updated_by=updated_by,
+                    update_type='other' if changes else 'comment',
+                    comment=self.cleaned_data.get('comment', ''),
+                    **changes
+                )
+        return ticket, changes
+
 class TicketUpdateForm(forms.ModelForm):
+    comment = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'rows': 2,
+            'placeholder': 'Add a comment...',
+            'id': 'id_comment',        # <-- force a fixed ID
+        }),
+        required=False
+    )
+    
+    is_internal_note = forms.BooleanField(required=False, label="keep as Internal")
+    
+    # In the form:
+    attachments = forms.FileField(
+        widget=MultipleFileInput(attrs={'multiple': True}),
+        required=False
+    )
+
+    class Meta:
+        model = Ticket
+        fields = ['status', 'priority', 'assigned_to', 'department']
+
+    def __init__(self, *args, **kwargs):
+        # Pop the current user from kwargs (passed from view)
+        self.user = kwargs.pop('user', None)
+        # Restrict department choices (optional)
+        # self.fields['department'].queryset = Department.objects.filter(is_active=True)
+        super().__init__(*args, **kwargs)
+
+        self.helper = FormHelper()
+        self.helper.form_tag = False   # we will use custom form tag in template
+        self.helper.disable_csrf = True  # CSRF added manually in template
+        self.helper.layout = Layout(
+            Div(
+                Field('status', css_class='mt-1 block w-full rounded-md border-gray-300 shadow-sm'),
+                Field('priority', css_class='mt-1 block w-full rounded-md border-gray-300 shadow-sm'),
+                Field('assigned_to', css_class='mt-1 block w-full rounded-md border-gray-300 shadow-sm'),
+                Field('department', css_class='mt-1 block w-full rounded-md border-gray-300 shadow-sm'),
+                css_class='grid grid-cols-2 gap-3'
+            ),
+            Field('comment', rows=2, css_class='mt-1 block w-full rounded-md border-gray-300 shadow-sm'),
+            Div(
+                Field('attachments', css_class='mt-1 block rounded-md border-gray-300 shadow-sm'),
+                Field('is_internal_note', css_class='mt-1 block rounded-md border-gray-300 shadow-sm'),
+                css_class='grid grid-cols-2 gap-3'
+            ),
+        )
+
+
+        # Restrict assignable users based on role
+        if self.user and self.user.role:
+            if self.user.role.code == 'agent':
+                # Agents can only assign to themselves or leave unassigned
+                self.fields['assigned_to'].queryset = self.user.__class__.objects.filter(id=self.user.id)
+                self.fields['assigned_to'].empty_label = "Unassigned"
+            elif self.user.role.code in ['supervisor', 'admin']:
+                # Supervisors/admins can assign anyone in the same department (or all)
+                # Adjust as needed: here we allow all users in the same department
+                self.fields['assigned_to'].queryset = self.user.__class__.objects.filter(
+                    department=self.user.department, is_active=True
+                )
+                self.fields['assigned_to'].empty_label = "Unassigned"
+        # If no user, show empty queryset (shouldn't happen)
+
+        # Store original values to detect changes
+        if self.instance.pk:
+            self.original_status = self.instance.status
+            self.original_priority = self.instance.priority
+            self.original_assigned_to = self.instance.assigned_to
+            self.original_department = self.instance.department   # add this
+
+    def save(self, updated_by=None, commit=True):
+        ticket = super().save(commit=False)
+        if commit:
+            changes = {}
+            if self.original_status != ticket.status:
+                changes['old_status'] = self.original_status
+                changes['new_status'] = ticket.status
+            if self.original_priority != ticket.priority:
+                changes['old_priority'] = self.original_priority
+                changes['new_priority'] = ticket.priority
+            if self.original_assigned_to != ticket.assigned_to:
+                changes['old_assigned_to'] = self.original_assigned_to
+                changes['new_assigned_to'] = ticket.assigned_to
+            if self.original_department != ticket.department:   # add department change
+                changes['old_department'] = self.original_department
+                changes['new_department'] = ticket.department
+            ticket.save()
+            if changes or self.cleaned_data.get('comment'):
+                TicketUpdate.objects.create(
+                    ticket=ticket,
+                    updated_by=updated_by,
+                    update_type='other' if changes else 'comment',
+                    comment=self.cleaned_data.get('comment', ''),
+                    **changes
+                )
+        return ticket, changes  # return changes for notification logic in view
+
+class old_TicketUpdateForm(forms.ModelForm):
     comment = forms.CharField(
         widget=forms.Textarea(attrs={'rows': 2, 'placeholder': 'Add a comment...'}),
         required=False
@@ -179,48 +342,49 @@ class TicketUpdateForm(forms.ModelForm):
                     **changes
                 )
         return ticket, changes  # return changes for notification logic in view
+
     
-class old_TicketUpdateForm(forms.ModelForm):
-    comment = forms.CharField(
-        widget=forms.Textarea(attrs={'rows': 2, 'placeholder': 'Add a comment...'}),
-        required=False
-    )
+# class old_TicketUpdateForm(forms.ModelForm):
+#     comment = forms.CharField(
+#         widget=forms.Textarea(attrs={'rows': 2, 'placeholder': 'Add a comment...'}),
+#         required=False
+#     )
 
-    class Meta:
-        model = Ticket
-        fields = ['status', 'priority', 'assigned_to']
+#     class Meta:
+#         model = Ticket
+#         fields = ['status', 'priority', 'assigned_to']
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Store original values to detect changes
-        if self.instance.pk:
-            self.original_status = self.instance.status
-            self.original_priority = self.instance.priority
-            self.original_assigned_to = self.instance.assigned_to
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         # Store original values to detect changes
+#         if self.instance.pk:
+#             self.original_status = self.instance.status
+#             self.original_priority = self.instance.priority
+#             self.original_assigned_to = self.instance.assigned_to
 
-    def save(self, updated_by=None, commit=True):
-        ticket = super().save(commit=False)
-        if commit:
-            changes = {}
-            if self.original_status != ticket.status:
-                changes['old_status'] = self.original_status
-                changes['new_status'] = ticket.status
-            if self.original_priority != ticket.priority:
-                changes['old_priority'] = self.original_priority
-                changes['new_priority'] = ticket.priority
-            if self.original_assigned_to != ticket.assigned_to:
-                changes['old_assigned_to'] = self.original_assigned_to
-                changes['new_assigned_to'] = ticket.assigned_to
-            ticket.save()
-            if changes or self.cleaned_data.get('comment'):
-                TicketUpdate.objects.create(
-                    ticket=ticket,
-                    updated_by=updated_by,
-                    update_type='other' if changes else 'comment',
-                    comment=self.cleaned_data.get('comment', ''),
-                    **changes
-                )
-        return ticket
+#     def save(self, updated_by=None, commit=True):
+#         ticket = super().save(commit=False)
+#         if commit:
+#             changes = {}
+#             if self.original_status != ticket.status:
+#                 changes['old_status'] = self.original_status
+#                 changes['new_status'] = ticket.status
+#             if self.original_priority != ticket.priority:
+#                 changes['old_priority'] = self.original_priority
+#                 changes['new_priority'] = ticket.priority
+#             if self.original_assigned_to != ticket.assigned_to:
+#                 changes['old_assigned_to'] = self.original_assigned_to
+#                 changes['new_assigned_to'] = ticket.assigned_to
+#             ticket.save()
+#             if changes or self.cleaned_data.get('comment'):
+#                 TicketUpdate.objects.create(
+#                     ticket=ticket,
+#                     updated_by=updated_by,
+#                     update_type='other' if changes else 'comment',
+#                     comment=self.cleaned_data.get('comment', ''),
+#                     **changes
+#                 )
+#         return ticket
 
 
 class MessageForm(forms.ModelForm):  
