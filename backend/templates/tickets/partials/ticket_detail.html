@@ -84,30 +84,24 @@
     <div id="update-form-container" hx-trigger="load" hx-get="{% url 'tickets:update_ticket' ticket.pk %}"></div>
 
     <div class="mt-2 flex space-x-2">
-    <button type="button" hx-get="{% url 'tickets:ai_suggest_reply' ticket.pk %}" hx-target="#ai-reply" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">AI Suggest Reply</button>
-    <div id="ai-reply" class="mt-2 p-2 border rounded text-sm"></div>
+        <button type="button"
+                hx-post="{% url 'tickets:ai_suggest_reply' ticket.pk %}"
+                hx-include="#id_comment"
+                hx-target="#update-form-container"
+                hx-swap="innerHTML"
+                class="bg-amber-500 text-white px-3 py-1 rounded text-sm">
+            AI Suggest Reply
+        </button>
+
+        <button type="button"
+                hx-post="{% url 'tickets:ai_translate_to_arabic' ticket.pk %}"
+                hx-include="#id_comment"
+                hx-target="#update-form-container"
+                hx-swap="innerHTML"
+                class="bg-green-500 text-white px-3 py-1 rounded text-sm">
+            Translate Comment to Arabic
+        </button>
     </div>
-
-<div class="mt-2 flex space-x-2">
-    <button type="button"
-            hx-post="{% url 'tickets:ai_suggest_reply' ticket.pk %}"
-            hx-include="#id_comment"
-            hx-target="#update-form-container"
-            hx-swap="innerHTML"
-            class="bg-amber-500 text-white px-3 py-1 rounded text-sm">
-        AI Suggest Reply
-    </button>
-
-    <button type="button"
-            hx-post="{% url 'tickets:ai_translate_to_arabic' ticket.pk %}"
-            hx-include="#id_comment"
-            hx-target="#update-form-container"
-            hx-swap="innerHTML"
-            class="bg-green-500 text-white px-3 py-1 rounded text-sm">
-        Translate Comment to Arabic
-    </button>
-</div>
-
 </div>
 
 <!-- Conversation -->

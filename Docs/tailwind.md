@@ -11,3 +11,6 @@ If you prefer npx without installing, run:
 
 
 npx tailwindcss -i ./src/input.css -o ../backend/static/css/output.css --watch
+
+Before a push - Recommended production build command
+npx tailwindcss -i ./src/input.css -o ../backend/static/css/output.css --minify

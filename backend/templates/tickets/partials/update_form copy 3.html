@@ -5,6 +5,31 @@
       hx-encoding="multipart/form-data">
     {% csrf_token %}
     {% crispy form %}
+    
+    <!-- Manually render the comment field with the AI buttons next to it -->
+    <div class="mt-2">
+        <label for="{{ form.comment.id_for_label }}" class="block text-sm font-medium text-gray-700">Comment</label>
+        {{ form.comment }}
+        <div class="flex space-x-2 mt-2">
+            <button type="button"
+                    hx-post="{% url 'tickets:ai_suggest_reply' ticket.pk %}"
+                    hx-include="#id_comment"
+                    hx-target="#update-form-container"
+                    hx-swap="innerHTML"
+                    class="bg-blue-500 text-white px-3 py-1 rounded text-sm">
+                AI Suggest Reply
+            </button>
+            <button type="button"
+                    hx-post="{% url 'tickets:ai_translate_to_arabic' ticket.pk %}"
+                    hx-include="#id_comment"
+                    hx-target="#update-form-container"
+                    hx-swap="innerHTML"
+                    class="bg-green-500 text-white px-3 py-1 rounded text-sm">
+                Translate Comment to Arabic
+            </button>
+        </div>
+    </div>
+
     <!-- File list (unchanged) -->
     <div id="file-list" class="mt-2 text-sm text-gray-600 space-y-1"></div>
 
