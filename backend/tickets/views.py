@@ -45,6 +45,23 @@ def ai_suggest_reply(request, pk):
     return HttpResponse(status=405)
 
 @login_required
+def ai_translate(request, pk):
+    ticket = get_object_or_404(Ticket, pk=pk)
+    if request.method == 'POST':
+        current_comment = request.POST.get('comment', '')
+        target_lang = request.POST.get('target_lang', 'Arabic')
+        if not current_comment:
+            form = TicketUpdateForm(instance=ticket, user=request.user, initial={'comment': current_comment})
+            return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
+        prompt = f"Translate the following English text to {target_lang}. Output only the translation.\n\nText: {current_comment}"
+        translation = call_deepseek(prompt)
+        translation = translation.strip('"').strip("'")
+        new_comment = f"{current_comment}\n\n{translation}"
+        form = TicketUpdateForm(instance=ticket, user=request.user, initial={'comment': new_comment})
+        return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
+    return HttpResponse(status=405)
+
+@login_required
 def ai_translate_to_arabic(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
     if request.method == 'POST':

@@ -13,7 +13,8 @@ urlpatterns = [
     
     # AI Features
     path('ticket/<int:pk>/ai-suggest-reply/', views.ai_suggest_reply, name='ai_suggest_reply'),
-    path('ticket/<int:pk>/ai-translate/', views.ai_translate_to_arabic, name='ai_translate_to_arabic'),
+    path('ticket/<int:pk>/ai-translate-to-arabic/', views.ai_translate_to_arabic, name='ai_translate_to_arabic'),
+    path('ticket/<int:pk>/ai-translate/', views.ai_translate, name='ai_translate'),
 
     # HTMX Partials
     path('ticket/<int:pk>/detail-partial/', views.ticket_detail_partial, name='ticket_detail_partial'),
