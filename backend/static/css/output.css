@@ -1153,6 +1153,10 @@ input:where([type='file']):focus {
   min-width: 100%;
 }
 
+.min-w-\[11rem\] {
+  min-width: 11rem;
+}
+
 .max-w-2xl {
   max-width: 42rem;
 }
@@ -1251,6 +1255,10 @@ input:where([type='file']):focus {
 
 .items-center {
   align-items: center;
+}
+
+.items-stretch {
+  align-items: stretch;
 }
 
 .justify-start {
