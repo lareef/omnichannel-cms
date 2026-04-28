@@ -30,3 +30,9 @@ sudo systemctl reload nginx
 
 ## Instead of manually building on the VPS, commit the built output.css locally and push. Then your GitHub Actions will deploy it automatically. For now, the manual steps above will fix it.
 
+
+# Add and commit the updated CSS: and Push to GitHub:
+
+git add backend/static/css/output.css
+git commit -m "Update Tailwind CSS: add green button style"
+git push origin main
