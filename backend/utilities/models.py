@@ -58,3 +58,13 @@ class WhatsAppTemplate(models.Model):
 
     def __str__(self):
         return self.name
+
+from django.db import models
+
+class SupportedLanguage(models.Model):
+    name = models.CharField(max_length=50, unique=True, help_text="Display name (e.g., 'Arabic')")
+    code = models.CharField(max_length=10, unique=True, help_text="Language code (e.g., 'ar')")
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name

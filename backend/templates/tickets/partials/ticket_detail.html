@@ -82,39 +82,14 @@
 <div class="mb-4 border-t pt-4">
     <h3 class="text-md font-semibold text-gray-700 mb-2">Update Ticket</h3>
     <div id="update-form-container" hx-trigger="load" hx-get="{% url 'tickets:update_ticket' ticket.pk %}"></div>
-
-    <div class="mt-2 flex space-x-2">
-        <button type="button"
-                hx-post="{% url 'tickets:ai_suggest_reply' ticket.pk %}"
-                hx-include="#id_comment"
-                hx-target="#update-form-container"
-                hx-swap="innerHTML"
-                class="bg-amber-500 text-white px-3 py-1 rounded text-sm">
-            AI Suggest Reply
-        </button>
-
-        <button type="button"
-                hx-post="{% url 'tickets:ai_translate_to_arabic' ticket.pk %}"
-                hx-include="#id_comment"
-                hx-target="#update-form-container"
-                hx-swap="innerHTML"
-                class="bg-green-500 text-white px-3 py-1 rounded text-sm">
-            Translate Comment to Arabic
-        </button>
-    </div>
 </div>
 
 <!-- Conversation -->
-<!-- <div class="mb-4 border-t pt-4"> -->
-<div class="max-w-full sm:max-w-lg rounded-lg p-3 ...">
+<div class="max-w-full sm:max-w-lg rounded-lg p-3">
     <h3 class="text-md font-semibold text-gray-700 mb-2">Conversation</h3>
     <div id="message-list" hx-trigger="load" hx-get="{% url 'tickets:message_list_partial' ticket.pk %}" hx-swap="innerHTML"></div>
-
-    <div class="mt-2">
-        <input type="text" id="translate-text" placeholder="Text to translate" class="border p-1 rounded w-full">
-        <button hx-get="{% url 'tickets:ai_translate_to_arabic' ticket.pk %}" hx-vals='js:{text: document.getElementById("translate-text").value}' hx-target="#translation-result" class="bg-green-500 text-white px-3 py-1 rounded text-sm mt-1">Translate to Arabic</button>
-        <div id="translation-result" class="mt-1 p-2 border rounded text-sm"></div>
-    </div>
+    <div class="text-center py-4">Loading conversation...</div>
+    <!-- No translation input here anymore -->
 </div>
 
 <!-- Recent Activity -->
@@ -122,3 +97,24 @@
     <h3 class="text-md font-semibold text-gray-700 mb-2">Recent Activity</h3>
     <div id="update-list" hx-trigger="load" hx-get="{% url 'tickets:update_list_partial' ticket.pk %}"></div>
 </div>
+
+<script>
+    document.addEventListener('click', function(e) {
+        const toggle = e.target.closest('.toggle-more');
+        if (!toggle) return;
+        e.preventDefault();
+        const container = toggle.closest('.update-content');
+        if (!container) return;
+        const previewSpan = container.querySelector('.update-preview');
+        const fullSpan = container.querySelector('.update-full');
+        if (fullSpan.classList.contains('hidden')) {
+            fullSpan.classList.remove('hidden');
+            previewSpan.classList.add('hidden');
+            toggle.textContent = 'less';
+        } else {
+            fullSpan.classList.add('hidden');
+            previewSpan.classList.remove('hidden');
+            toggle.textContent = 'more';
+        }
+    });
+</script>

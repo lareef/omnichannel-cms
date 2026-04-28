@@ -168,7 +168,7 @@ class TicketUpdateForm(forms.ModelForm):
         required=False
     )
     
-    is_internal_note = forms.BooleanField(required=False, label="keep as Internal")
+    is_internal_note = forms.BooleanField(required=False, label="keep as Internal", widget=forms.CheckboxInput(attrs={'id': 'is_internal_note'}))
     
     # In the form:
     attachments = forms.FileField(

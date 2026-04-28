@@ -1,5 +1,7 @@
-<div class="space-y-3">
+<div class="space-y-4">
     {% for message in messages %}
         {% include 'tickets/partials/single_message.html' %}
+    {% empty %}
+        <p class="text-gray-500 text-center">No messages yet.</p>
     {% endfor %}
 </div>

@@ -3,6 +3,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Q
 from django.urls import reverse, reverse_lazy
 from .models import Ticket, TicketUpdate, Message, MessageAttachment, TicketEscalation, EscalationPolicy, EscalationTarget
+from utilities.models import SupportedLanguage
+
 from .forms import TicketFilterForm, TicketUpdateForm, MessageForm, EscalationPolicyForm
 from django.http import HttpResponseForbidden, HttpResponse
 from accounts.decorators import role_required
@@ -33,16 +35,37 @@ from django.utils.safestring import mark_safe
 def ai_suggest_reply(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
     if request.method == 'POST':
-        # Get current comment (if any) – not needed for suggestion, but we'll pass it for context
-        current_comment = request.POST.get('comment', '')
-        # Generate AI reply using ticket context and current_comment (optional)
-        prompt = f"Write a helpful reply to the customer regarding ticket #{ticket.ticket_number}. The latest customer message: {ticket.messages.last().content if ticket.messages.exists() else ticket.description}. Write a polite response (max 150 words)."
-        reply = call_deepseek(prompt)
-        # Create a new form instance with the reply as the comment
-        form = TicketUpdateForm(instance=ticket, user=request.user, initial={'comment': reply})
-        # Render the partial update form
-        return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
+        messages = ticket.messages.order_by('-sent_at')[:5]
+        conversation = "\n".join([f"{m.sender_type}: {m.content}" for m in messages[::-1]])
+        latest_message = ticket.messages.last().content if ticket.messages.exists() else ticket.description
+        prompt = f"""You are a customer support agent. Based on the conversation below, write a polite and helpful reply to the customer.
+
+Conversation:
+{conversation}
+
+Latest customer message: {latest_message}
+
+Write a concise, helpful response (max 150 words)."""
+        try:
+            reply = call_deepseek(prompt)
+            return JsonResponse({'success': True, 'reply': reply.strip()})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': f'AI service error: {str(e)}'})
     return HttpResponse(status=405)
+
+# def ai_suggest_reply(request, pk):
+#     ticket = get_object_or_404(Ticket, pk=pk)
+#     if request.method == 'POST':
+#         # Get current comment (if any) – not needed for suggestion, but we'll pass it for context
+#         current_comment = request.POST.get('comment', '')
+#         # Generate AI reply using ticket context and current_comment (optional)
+#         prompt = f"Write a helpful reply to the customer regarding ticket #{ticket.ticket_number}. The latest customer message: {ticket.messages.last().content if ticket.messages.exists() else ticket.description}. Write a polite response (max 150 words)."
+#         reply = call_deepseek(prompt)
+#         # Create a new form instance with the reply as the comment
+#         form = TicketUpdateForm(instance=ticket, user=request.user, initial={'comment': reply})
+#         # Render the partial update form
+#         return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
+#     return HttpResponse(status=405)
 
 @login_required
 def ai_translate(request, pk):
@@ -51,14 +74,14 @@ def ai_translate(request, pk):
         current_comment = request.POST.get('comment', '')
         target_lang = request.POST.get('target_lang', 'Arabic')
         if not current_comment:
-            form = TicketUpdateForm(instance=ticket, user=request.user, initial={'comment': current_comment})
-            return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
+            return JsonResponse({'success': False, 'error': 'Please enter some text to translate.'})
         prompt = f"Translate the following English text to {target_lang}. Output only the translation.\n\nText: {current_comment}"
-        translation = call_deepseek(prompt)
-        translation = translation.strip('"').strip("'")
-        new_comment = f"{current_comment}\n\n{translation}"
-        form = TicketUpdateForm(instance=ticket, user=request.user, initial={'comment': new_comment})
-        return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
+        try:
+            translation = call_deepseek(prompt)
+            translation = translation.strip('"').strip("'")
+            return JsonResponse({'success': True, 'translation': translation, 'target_lang': target_lang})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': f'Translation service error: {str(e)}'})
     return HttpResponse(status=405)
 
 @login_required
@@ -67,16 +90,14 @@ def ai_translate_to_arabic(request, pk):
     if request.method == 'POST':
         current_comment = request.POST.get('comment', '')
         if not current_comment:
-            # Return the form unchanged with an error message (optional)
-            form = TicketUpdateForm(instance=ticket, user=request.user, initial={'comment': current_comment})
-            return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
+            return JsonResponse({'success': False, 'error': 'Please enter some text to translate.'})
         prompt = f"Translate the following English text to Arabic (standard Arabic). Output only the translation.\n\nText: {current_comment}"
-        translation = call_deepseek(prompt)
-        translation = translation.strip('"').strip("'")
-        # Append translation to the existing comment
-        new_comment = f"{current_comment}\n\n{translation}"
-        form = TicketUpdateForm(instance=ticket, user=request.user, initial={'comment': new_comment})
-        return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket})
+        try:
+            translation = call_deepseek(prompt)
+            translation = translation.strip('"').strip("'")
+            return JsonResponse({'success': True, 'translation': translation, 'target_lang': 'Arabic'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': f'Translation service error: {str(e)}'})
     return HttpResponse(status=405)
 
 # @login_required
@@ -526,6 +547,11 @@ def update_ticket(request, pk):
     if user.role.code == 'agent' and not (ticket.assigned_to == user or (ticket.assigned_to is None )):
         return HttpResponseForbidden()
 
+    if request.method == 'GET':
+        form = TicketUpdateForm(instance=ticket, user=user)
+        languages = SupportedLanguage.objects.filter(is_active=True)
+        return render(request, 'tickets/partials/update_form.html', {'form': form, 'ticket': ticket, 'languages': languages})
+
     if request.method == 'POST':
         form = TicketUpdateForm(request.POST, instance=ticket, user=user)
         if form.is_valid():
@@ -703,7 +729,8 @@ def add_message_with_attachments(request, pk):
 def message_list_partial(request, pk):
     """Return all messages for a ticket (for refreshing)."""
     ticket = get_object_or_404(Ticket, pk=pk)
-    messages_qs = ticket.messages.select_related('sender_user').order_by('sent_at')
+    messages_qs = ticket.messages.select_related('sender_user').prefetch_related('attachments').order_by('sent_at')
+    # messages_qs = ticket.messages.select_related('sender_user').order_by('sent_at')
     html = render_to_string('tickets/partials/message_list.html', {'messages': messages_qs}, request=request)
     return HttpResponse(html)
 

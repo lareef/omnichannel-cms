@@ -3,12 +3,13 @@ from .models import (
     BusinessCalendar,
     BusinessHourRule,
     Holiday,
+    SupportedLanguage
 )
 from .models import WhatsAppTemplate
 
 # Register your models here.
 admin.site.register(BusinessCalendar)
-admin.site.register(BusinessHourRule)
+admin.site.register(SupportedLanguage)
 admin.site.register(Holiday)
 
 @admin.register(WhatsAppTemplate)

@@ -1,19 +1,33 @@
 <div class="space-y-2">
     {% for update in updates %}
-        <div class="text-sm border-l-4 pl-3 {% if update.update_type == 'comment' %}border-blue-300{% else %}border-green-300{% endif %}">
+        <div class="text-sm border-l-4 pl-3
+            {% if update.update_type == 'comment' %}border-blue-300
+            {% else %}border-green-300{% endif %}">
             <p class="text-gray-600">
                 <span class="font-medium">{{ update.updated_by.get_full_name|default:"System" }}</span>
-                <span class="text-xs text-gray-500">{{ update.created_at|date:"Y-m-d H:i" }}</span>
+                <span class="text-xs text-gray-500" title="{{ update.created_at|date:"M j, Y, g:i a" }}">
+                    {{ update.created_at|timesince }} ago
+                </span>
             </p>
-            <p>{{ update.comment }}</p>
+            {% if update.comment %}
+                <div class="update-content mt-1" data-full="{{ update.comment|escape }}">
+                    <span class="update-preview">{{ update.comment|truncatechars:100 }}</span>
+                    <a href="javascript:void(0)" class="toggle-more text-indigo-600 text-xs ml-1">more</a>
+                    <span class="update-full hidden">{{ update.comment|linebreaksbr }}</span>
+                </div>
+            {% endif %}
+            <!-- Other change details -->
             {% if update.old_status %}
-                <p class="text-xs">Status changed: {{ update.old_status.name }} → {{ update.new_status.name }}</p>
+                <p class="text-xs mt-1">Status: {{ update.old_status.name }} → {{ update.new_status.name }}</p>
             {% endif %}
             {% if update.old_priority %}
-                <p class="text-xs">Priority changed: {{ update.old_priority.name }} → {{ update.new_priority.name }}</p>
+                <p class="text-xs">Priority: {{ update.old_priority.name }} → {{ update.new_priority.name }}</p>
             {% endif %}
             {% if update.old_assigned_to %}
-                <p class="text-xs">Assignment changed: {{ update.old_assigned_to.get_full_name|default:"Unassigned" }} → {{ update.new_assigned_to.get_full_name|default:"Unassigned" }}</p>
+                <p class="text-xs">Assignment: {{ update.old_assigned_to.get_full_name|default:"Unassigned" }} → {{ update.new_assigned_to.get_full_name|default:"Unassigned" }}</p>
+            {% endif %}
+            {% if update.old_department %}
+                <p class="text-xs">Department: {{ update.old_department.name|default:"None" }} → {{ update.new_department.name|default:"None" }}</p>
             {% endif %}
         </div>
     {% empty %}

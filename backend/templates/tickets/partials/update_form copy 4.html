@@ -1,0 +1,60 @@
+{% load crispy_forms_tags %}
+<form hx-post="{% url 'tickets:update_ticket' ticket.pk %}" 
+      hx-target="#modal-content" 
+      enctype="multipart/form-data"
+      hx-encoding="multipart/form-data">
+    {% csrf_token %}
+    {% crispy form %}
+    <!-- File list (unchanged) -->
+    <div id="file-list" class="mt-2 text-sm text-gray-600 space-y-1"></div>
+
+    <!-- Translation controls -->
+    <div class="mt-2 flex space-x-2 items-end">
+        <div>
+            <label class="block text-xs text-gray-500 mb-1">Target Language</label>
+            <select name="target_lang" class="border rounded p-1 text-sm">
+                <option value="Arabic">Arabic</option>
+                <option value="French">French</option>
+                <option value="Spanish">Spanish</option>
+                <option value="German">German</option>
+                <option value="Chinese">Chinese</option>
+                <option value="Sinhala">Sinhala</option>
+            </select>
+        </div>
+        <button type="button"
+                hx-post="{% url 'tickets:ai_translate' ticket.pk %}"
+                hx-include="[name='comment'],[name='target_lang']"
+                hx-target="#update-form-container"
+                hx-swap="innerHTML"
+                class="bg-green-500 text-white px-3 py-1 rounded text-sm">
+            Translate Comment
+        </button>
+    </div>
+
+
+    <!-- Submit button -->
+    <div class="flex justify-end mt-4">
+        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Update Ticket</button>
+    </div>
+</form>
+
+<script>
+    (function() {
+        const fileInput = document.getElementById('id_attachments');
+        if (fileInput && !fileInput.hasAttribute('data-listener-attached')) {
+            fileInput.setAttribute('data-listener-attached', 'true');
+            fileInput.addEventListener('change', function(e) {
+                const fileListDiv = document.getElementById('file-list');
+                fileListDiv.innerHTML = '';
+                const files = Array.from(e.target.files);
+                if (files.length === 0) return;
+                files.forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                    fileItem.classList.add('bg-gray-100', 'px-2', 'py-1', 'rounded', 'flex', 'items-center', 'justify-between');
+                    fileListDiv.appendChild(fileItem);
+                });
+            });
+        }
+    })();
+</script>

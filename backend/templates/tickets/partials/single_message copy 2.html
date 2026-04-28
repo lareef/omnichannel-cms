@@ -14,15 +14,8 @@
                 <ul class="list-disc list-inside">
                     {% for attachment in message.attachments.all %}
                         <li>
-                            <!-- Attachment link and details 
                             <a href="{{ attachment.file.url }}" target="_blank" class="text-xs text-indigo-600 hover:text-indigo-800 hover:underline">
                                 {{ attachment.original_name }}
-                            </a>
-                            -->
-                            <a href="javascript:void(0)"
-                                onclick="previewAttachment('{{ attachment.file.url }}', '{{ attachment.original_name }}', '{{ attachment.content_type }}')"
-                                class="text-xs text-indigo-600 hover:text-indigo-800 hover:underline">
-                                    {{ attachment.original_name }}
                             </a>
                             <span class="text-xs text-gray-400">({{ attachment.size|filesizeformat }})</span>
                         </li>

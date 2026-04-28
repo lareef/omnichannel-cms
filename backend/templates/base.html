@@ -164,11 +164,6 @@
         </main>
     </div>
 
-
-
-
-
-
     <!-- Footer -->
     <footer class="bg-white shadow-inner py-4">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
@@ -287,6 +282,61 @@
             modal.classList.remove('hidden');
         };
     });
+</script>
+
+<script>
+    (function() {
+        const modal = document.getElementById('preview-modal');
+        const title = document.getElementById('preview-title');
+        const contentDiv = document.getElementById('preview-content');
+        const downloadLink = document.getElementById('preview-download');
+
+        window.previewAttachment = function(url, filename, mimeType) {
+            title.textContent = filename;
+            downloadLink.href = url;
+            contentDiv.innerHTML = ''; // clear previous
+
+            if (mimeType.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = filename;
+                img.className = 'max-w-full max-h-[70vh] object-contain';
+                contentDiv.appendChild(img);
+            } else if (mimeType === 'application/pdf') {
+                const embed = document.createElement('embed');
+                embed.src = url;
+                embed.type = 'application/pdf';
+                embed.className = 'w-full h-[70vh]';
+                contentDiv.appendChild(embed);
+            } else if (mimeType.startsWith('video/')) {
+                const video = document.createElement('video');
+                video.src = url;
+                video.controls = true;
+                video.className = 'max-w-full max-h-[70vh]';
+                contentDiv.appendChild(video);
+            } else {
+                contentDiv.innerHTML = `
+                    <div class="text-center">
+                        <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <p class="mt-2 text-gray-600">Preview not available for this file type.</p>
+                    </div>
+                `;
+            }
+            modal.classList.remove('hidden');
+        };
+
+        function closeModal() {
+            modal.classList.add('hidden');
+        }
+
+        document.getElementById('close-preview').addEventListener('click', closeModal);
+        document.getElementById('close-preview-bottom').addEventListener('click', closeModal);
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closeModal();
+        });
+    })();
 </script>
 
 </html>

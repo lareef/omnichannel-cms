@@ -1,45 +1,52 @@
 {% load crispy_forms_tags %}
-<form hx-post="{% url 'tickets:update_ticket' ticket.pk %}" 
-      hx-target="#modal-content" 
-      enctype="multipart/form-data"
-      hx-encoding="multipart/form-data">
-    {% csrf_token %}
-    {% crispy form %}
-    <!-- File list (unchanged) -->
-    <div id="file-list" class="mt-2 text-sm text-gray-600 space-y-1"></div>
+<div id="update-form-container">
+    <form hx-post="{% url 'tickets:update_ticket' ticket.pk %}" 
+          hx-target="#modal-content" 
+          enctype="multipart/form-data"
+          hx-encoding="multipart/form-data">
+        {% csrf_token %}
+        {% crispy form %}
 
-    <!-- Translation controls -->
-    <div class="mt-2 flex space-x-2 items-end">
-        <div>
-            <label class="block text-xs text-gray-500 mb-1">Target Language</label>
-            <select name="target_lang" class="border rounded p-1 text-sm">
-                <option value="Arabic">Arabic</option>
-                <option value="French">French</option>
-                <option value="Spanish">Spanish</option>
-                <option value="German">German</option>
-                <option value="Chinese">Chinese</option>
-                <option value="Sinhala">Sinhala</option>
-            </select>
+        <!-- AI Buttons (below the comment field) -->
+        <div class="mt-2 flex space-x-2">
+            <button type="button"
+                    id="ai-suggest-btn"
+                    class="bg-amber-500 text-white px-3 py-1 rounded text-sm hover:bg-amber-600">
+                AI Suggest Reply
+            </button>
+
+            <!-- Language selector + Translate button -->
+            <div class="flex items-end space-x-2">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Target Language</label>
+                    <select id="target_lang" name="target_lang" class="border rounded p-1 text-sm w-full">
+                        <!-- Languages will be loaded dynamically from a model (see step 5) -->
+                        {% for lang in languages %}
+                            <option value="{{ lang.code }}">{{ lang.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="button"
+                        id="ai-translate-btn"
+                        class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">
+                    Translate Comment
+                </button>
+            </div>
         </div>
-        <button type="button"
-                hx-post="{% url 'tickets:ai_translate' ticket.pk %}"
-                hx-include="[name='comment'],[name='target_lang']"
-                hx-target="#update-form-container"
-                hx-swap="innerHTML"
-                class="bg-green-500 text-white px-3 py-1 rounded text-sm">
-            Translate Comment
-        </button>
-    </div>
 
+        <!-- File list -->
+        <div id="file-list" class="mt-2 text-sm text-gray-600 space-y-1"></div>
 
-    <!-- Submit button -->
-    <div class="flex justify-end mt-4">
-        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Update Ticket</button>
-    </div>
-</form>
+        <!-- Submit button -->
+        <div class="flex justify-end mt-4">
+            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Update Ticket</button>
+        </div>
+    </form>
+</div>
 
 <script>
     (function() {
+        // File list script
         const fileInput = document.getElementById('id_attachments');
         if (fileInput && !fileInput.hasAttribute('data-listener-attached')) {
             fileInput.setAttribute('data-listener-attached', 'true');
@@ -54,6 +61,85 @@
                     fileItem.classList.add('bg-gray-100', 'px-2', 'py-1', 'rounded', 'flex', 'items-center', 'justify-between');
                     fileListDiv.appendChild(fileItem);
                 });
+            });
+        }
+
+        // AI Suggest Reply button
+        const suggestBtn = document.getElementById('ai-suggest-btn');
+        if (suggestBtn && !suggestBtn.hasAttribute('data-listener-attached')) {
+            suggestBtn.setAttribute('data-listener-attached', 'true');
+            suggestBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                suggestBtn.disabled = true;
+                suggestBtn.textContent = 'Generating...';
+                try {
+                    const response = await fetch('{% url "tickets:ai_suggest_reply" ticket.pk %}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        const commentField = document.getElementById('id_comment');
+                        commentField.value = (commentField.value + '\n\n' + data.reply).trim();
+                        commentField.dispatchEvent(new Event('change', { bubbles: true }));
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                } finally {
+                    suggestBtn.disabled = false;
+                    suggestBtn.textContent = 'AI Suggest Reply';
+                }
+            });
+        }
+
+        // AI Translate button
+        const translateBtn = document.getElementById('ai-translate-btn');
+        if (translateBtn && !translateBtn.hasAttribute('data-listener-attached')) {
+            translateBtn.setAttribute('data-listener-attached', 'true');
+            translateBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const commentField = document.getElementById('id_comment');
+                const targetLang = document.getElementById('target_lang').value;
+                
+                if (!commentField.value.trim()) {
+                    alert('Please enter some text to translate');
+                    return;
+                }
+                
+                translateBtn.disabled = true;
+                translateBtn.textContent = 'Translating...';
+                try {
+                    const formData = new FormData();
+                    formData.append('comment', commentField.value);
+                    formData.append('target_lang', targetLang);
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    formData.append('csrfmiddlewaretoken', csrfToken);
+                    
+                    const response = await fetch('{% url "tickets:ai_translate" ticket.pk %}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                        },
+                        body: formData,
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        commentField.value = (commentField.value + '\n\n' + data.translation).trim();
+                        commentField.dispatchEvent(new Event('change', { bubbles: true }));
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                } finally {
+                    translateBtn.disabled = false;
+                    translateBtn.textContent = 'Translate Comment';
+                }
             });
         }
     })();
